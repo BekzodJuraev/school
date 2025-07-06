@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bootstrap Table</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="d-flex flex-column  align-items-center vh-100 bg-light">
+
+    <div class="container text-center">
+        <h2 class="mb-4">ISTIQBOLLI TA`LIM</h2>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped mx-auto">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ФИО</th>
+                        {% for item in dates %}
+                        <th>{{ item }}</th>
+                        {% endfor %}
+                        <th>ИТОГ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in teachers %}
+                    <tr>
+                        <td>{{ item.FIO }}</td>
+                        {% for date in dates %}
+                        <td>
+                            {% for post in item.lessons.all %}
+                                {% if date == post.created_at|date:"d.m.Y" %}
+                                    {{ post.hour }}
+
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        {% endfor %}
+                        {% if item.total %}
+                        <td>{{ item.total }}</td>
+                        {% else %}
+                        <td></td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
