@@ -1,0 +1,234 @@
+{% if request.user.profile.position == 'admin' %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Заявки - Админ</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f6fa;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background-color: #1e1e2f;
+      color: white;
+      padding: 2rem;
+    }
+
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar ul li {
+      margin: 1rem 0;
+      cursor: pointer;
+    }
+
+    .sidebar ul li:hover {
+      color: #ffcc00;
+    }
+
+    .main {
+      flex: 1;
+      padding: 2rem;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    .search-bar {
+      margin-bottom: 1rem;
+    }
+
+    .search-bar input {
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      width: 100%;
+      max-width: 400px;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background-color: #f2f2f2;
+      color: #555;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      padding: 0.4rem 0.8rem;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .btn.approve {
+      background-color: #1cc88a;
+      color: white;
+    }
+
+    .btn.reject {
+      background-color: #e74a3b;
+      color: white;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        padding: 1rem;
+      }
+
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      th {
+        display: none;
+      }
+
+      td {
+        position: relative;
+        padding-left: 50%;
+        border-bottom: 1px solid #eee;
+      }
+
+      td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        font-weight: bold;
+        color: #555;
+      }
+
+      .action-buttons {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>🏫 ШколаCRM</h2>
+    <ul>
+      <li onclick="window.location.href='{% url 'dashboard' %}'">Панель</li>
+      <li>Ученики</li>
+      <li>Преподаватели</li>
+      <li>Заявки</li>
+    </ul>
+  </div>
+
+  <div class="main">
+    <h1>Заявки на регистрацию</h1>
+
+    <div class="search-bar">
+      <input type="text" id="search" placeholder="🔍 Поиск по имени или email...">
+    </div>
+
+    <table id="requestTable">
+      <thead>
+        <tr>
+          <th>Фамилия</th>
+          <th>Имя</th>
+          <th>Отечество</th>
+          <th>Должность </th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for item in profile %}
+        <tr>
+          <td data-label="Имя">{{item.lastname}}</td>
+          <td data-label="Email">{{item.name}}</td>
+          <td data-label="Тип">{{item.middle_name}}</td>
+           <td data-label="Должность">{{ item.get_position_display }}</td>
+          <td data-label="Действия">
+            {% if not  item.approve %}
+
+            <form method="POST">
+            <div class="action-buttons">
+                 {% csrf_token %}
+                <input type="hidden" name="pk" value="{{ item.pk }}">
+              <button class="btn approve" name="action" value="approve">Одобрить</button>
+                <button class="btn reject" name="action" value="reject">Отклонить</button>
+
+            </div>
+          </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Поиск по таблице
+    document.getElementById('search').addEventListener('input', function () {
+      const query = this.value.toLowerCase();
+      const rows = document.querySelectorAll('#requestTable tbody tr');
+      rows.forEach(row => {
+        const name = row.cells[0].textContent.toLowerCase();
+        const email = row.cells[1].textContent.toLowerCase();
+        row.style.display = name.includes(query) || email.includes(query) ? '' : 'none';
+      });
+    });
+
+    // Пример обработки кнопок
+    document.querySelectorAll('.btn.approve').forEach(btn =>
+      btn.addEventListener('click', () => alert('✅ Заявка одобрена'))
+    );
+
+    document.querySelectorAll('.btn.reject').forEach(btn =>
+      btn.addEventListener('click', () => alert('❌ Заявка отклонена'))
+    );
+  </script>
+
+</body>
+</html>
+{% endif %}

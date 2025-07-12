@@ -1,13 +1,15 @@
 from django.shortcuts import render
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.views.generic import View,ListView, CreateView, UpdateView, DeleteView, TemplateView, DetailView,FormView
-
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import render,redirect
+from django.urls import reverse_lazy
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import json
 import telegram
 import requests
-
+from django.http import HttpResponse
 from rest_framework import status
 import json
 from django.http import JsonResponse
@@ -18,6 +20,108 @@ from django.utils.timezone import now
 from collections import defaultdict
 from django.db.models import Sum,Q
 from django.http import HttpResponse
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate,login,logout
+from .models import Profile
+
+class Dashboard(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'dashboard.html'
+def logout_view(request):
+   logout(request)
+   return redirect('main')
+
+class Main(TemplateView):
+   template_name = 'main.html'
+
+class Login(TemplateView):
+   template_name = 'login.html'
+
+   def post(self, request, *args, **kwargs):
+      username = request.POST.get('username')
+      password = request.POST.get('password')
+      next_url = request.GET.get('next')
+
+      # Error handling
+      errors = {}
+
+
+
+      if not errors:
+         user = authenticate(username=username, password=password)
+         if user:
+            login(request, user)
+            return redirect(next_url if next_url else 'dashboard')
+         else:
+            errors['invalid'] = 'Неверное имя пользователя или пароль'
+
+
+      return render(request, self.template_name, {'errors': errors})
+
+
+
+
+
+
+
+class Register(TemplateView):
+   template_name = 'register.html'
+
+   def  post(self, request, *args, **kwargs):
+      name = request.POST.get('name')
+      lastname = request.POST.get('lastname')
+      middle_name = request.POST.get('middle_name')
+      login=request.POST.get('login')
+      password=request.POST.get('password')
+      position = request.POST.get('position')
+      errors={}
+      if User.objects.filter(username=login).exists():
+         errors['username'] = "Пользователь с таким логином уже существует"
+
+      if not password or len(password) < 6:
+         errors['password'] = "Пароль должен содержать не менее 6 символов"
+
+
+
+      if errors:
+         return render(request, self.template_name, {'errors': errors, 'data': request.POST})
+      user=User.objects.create_user(username=login,password=password)
+      Profile.objects.create(
+         username=user,
+         name=name,
+         lastname=lastname,
+         middle_name=middle_name,
+         position=position,
+
+      )
+
+      return redirect('login')
+
+
+
+
+
+class ApproveView(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'approve_staff.html'
+
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+      pk = request.POST.get('pk')
+
+      if action == "approve":
+         Profile.objects.filter(id=pk).update(approve=True)
+      else:
+         User.objects.filter(profile__id=pk).delete()
+         # Profile.objects.filter(id=pk).delete()
+
+      return redirect(request.path)
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['profile']=Profile.objects.all()
+      return  context
+
 
 
 # @csrf_exempt

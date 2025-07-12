@@ -1,0 +1,249 @@
+{% if request.user.profile.approve %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Школьная CRM Панель</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f6fa;
+      display: flex;
+      flex-direction: row;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 240px;
+      background-color: #1e1e2f;
+      color: white;
+      padding: 2rem;
+      flex-shrink: 0;
+    }
+
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 2rem;
+    }
+
+    .sidebar ul {
+      list-style: none;
+    }
+
+    .sidebar ul li {
+      margin: 1rem 0;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .sidebar ul li:hover {
+      color: #ffcc00;
+    }
+
+    .main {
+      flex: 1;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 24px;
+      color: #333;
+    }
+
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      flex: 1;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-bottom: 0.5rem;
+    }
+
+    .card p {
+      font-size: 20px;
+      font-weight: bold;
+      color: #4e73df;
+    }
+
+    .actions {
+      margin-bottom: 2rem;
+    }
+
+    .actions h2 {
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn.primary {
+      background-color: #4e73df;
+      color: white;
+    }
+
+    .btn.success {
+      background-color: #1cc88a;
+      color: white;
+    }
+
+    .btn.info {
+      background-color: #36b9cc;
+      color: white;
+    }
+
+    .btn.warning {
+      background-color: #f6c23e;
+      color: #333;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 1rem;
+      }
+
+      .sidebar h2 {
+        display: none;
+      }
+
+      .sidebar ul {
+        display: flex;
+        flex-direction: row;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+
+      .main {
+        padding: 1rem;
+      }
+
+      .card {
+        min-width: 100%;
+      }
+
+      .button-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>🏫 ШколаCRM</h2>
+    <ul>
+    <li onclick="window.location.href='{% url 'approve' %}'">Заявки</li>
+      <li>Ученики</li>
+      <li>Преподаватели</li>
+    </ul>
+  </div>
+
+  <div class="main">
+    <header>
+      <h1>Добро пожаловать, {{request.user.profile.name}}</h1>
+      <p>📅 <span id="date"></span></p>
+    </header>
+
+    <section class="cards">
+      <div class="card">
+        <h3>Всего учеников</h3>
+        <p>0</p>
+      </div>
+        <div class="card">
+        <h3>Преподавателей</h3>
+        <p>0</p>
+      </div>
+      <div class="card">
+        <h3>Преподавателей</h3>
+        <p>0</p>
+      </div>
+      <div class="card">
+        <h3>Доход за месяц</h3>
+        <p>0 сум</p>
+      </div>
+
+
+    </section>
+
+    <section class="actions">
+      <h2>Быстрые действия</h2>
+      <div class="button-group">
+        <button class="btn primary" onclick="alert('Добавить ученика')">➕ Добавить ученика</button>
+        <button class="btn success" onclick="alert('Добавить преподавателя')">➕ Добавить сотрудника</button>
+        <button class="btn info" onclick="alert('Генерация отчёта...')">📊 Сформировать отчёт</button>
+        <button class="btn warning" onclick="alert('Отправка объявления...')">💬 Отправить объявление</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+                        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const today = new Date();
+    const formattedDate = `${today.getDate()} ${monthNames[today.getMonth()]} ${today.getFullYear()} г.`;
+    document.getElementById("date").textContent = formattedDate;
+  </script>
+
+</body>
+</html>
+
+
+{% else %}
+{% include 'waiting.html' %}
+{% endif %}

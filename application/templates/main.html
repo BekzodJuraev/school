@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Выбор действия</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #141e30, #243b55);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 300px;
+        }
+        h2 {
+            margin-bottom: 20px;
+        }
+        .btn {
+
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-login {
+            background: #00c6ff;
+            color: white;
+        }
+        .btn-login:hover {
+            background: #0072ff;
+        }
+        .btn-register {
+            background: #ff5733;
+            color: white;
+        }
+        .btn-register:hover {
+            background: #c70039;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Выберите действие:</h2>
+
+        <a href="{% url 'login' %}"><button class="btn btn-login">Вход</button></a>
+        <a href="{% url 'register' %}"><button class="btn btn-register">Регистрация</button></a>
+    </div>
+</body>
+</html>
