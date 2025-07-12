@@ -100,7 +100,9 @@ class Register(TemplateView):
 
 
 
-
+class StaffView(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'staff.html'
 class ApproveView(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'approve_staff.html'
