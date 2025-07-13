@@ -22,11 +22,19 @@ from django.db.models import Sum,Q
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
-from .models import Profile
+from .models import Profile,Staff,SchoolClass,Student
 
 class Dashboard(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'dashboard.html'
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['staff'] = Staff.objects.all().count()
+      context['teacher'] = Staff.objects.filter(position='teacher').count()
+      return context
+
+
 def logout_view(request):
    logout(request)
    return redirect('main')
@@ -96,13 +104,127 @@ class Register(TemplateView):
       )
 
       return redirect('login')
+class StudentView(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'student.html'
+
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+      name = request.POST.get('name')
+      id = request.POST.get('id')
+
+      if action == 'create':
+         SchoolClass.objects.create(name=name)
+      elif action == 'update':
+         SchoolClass.objects.filter(id=id).update(name=name)
 
 
+      elif action == 'delete':
+
+         SchoolClass.objects.filter(id=id).delete()
+
+      return redirect(request.path)
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['class'] = Student.objects.all()
+      context['classes']=SchoolClass.objects.all()
+      return context
+
+class ClassView(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'class.html'
+
+
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+      name =request.POST.get('name')
+      id=request.POST.get('id')
+
+      if action == 'create':
+         SchoolClass.objects.create(name=name)
+      elif action == 'update':
+         SchoolClass.objects.filter(id=id).update(name=name)
+
+
+      elif action == 'delete':
+
+         SchoolClass.objects.filter(id=id).delete()
+
+
+
+      return redirect(request.path)
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['class']=SchoolClass.objects.all()
+      return context
 
 
 class StaffView(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'staff.html'
+
+
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+      name =request.POST.get('name')
+      lastname = request.POST.get('lastname')
+      middle_name = request.POST.get('middle_name')
+      position = request.POST.get('position')
+      position_gender = request.POST.get('position_gender')
+      date_birth =request.POST.get('date_birth')
+      phone =request.POST.get('phone')
+      photo =request.FILES.get('photo')
+      cv_rus = request.FILES.get('cv_rus')
+      cv_uz = request.FILES.get('cv_uz')
+      diplom = request.FILES.get('diplom')
+      adres =request.POST.get('adres')
+      passport = request.POST.get('passport')
+      id = request.POST.get('id')
+
+      if action == 'create':
+         Staff.objects.create(name=name,lastname=lastname,middle_name=middle_name,position=position,position_gender=position_gender,date_birth=date_birth,phone=phone,
+                              photo=photo,cv_rus=cv_rus,cv_uz=cv_uz,diplom=diplom,adres=adres,passport=passport)
+
+      elif action == 'update':
+
+         staff=Staff.objects.filter(id=id).first()
+         staff.name=name
+         staff.lastname = lastname
+         staff.middle_name = middle_name
+         staff.position = position
+         staff.position_gender = position_gender
+         staff.date_birth = date_birth
+         staff.phone = phone
+         if 'photo' in request.FILES:
+            staff.photo = request.FILES['photo']
+         if 'cv_rus' in request.FILES:
+            staff.cv_rus = request.FILES['cv_rus']
+         if 'cv_uz' in request.FILES:
+            staff.cv_uz = request.FILES['cv_uz']
+         if 'diplom' in request.FILES:
+            staff.diplom = request.FILES['diplom']
+
+
+
+
+         staff.adres = adres
+         staff.passport = passport
+         staff.save()
+
+      elif action == 'delete':
+
+         Staff.objects.filter(id=id).delete()
+
+
+
+      return redirect(request.path)
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['staff']=Staff.objects.all()
+      return context
 class ApproveView(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'approve_staff.html'

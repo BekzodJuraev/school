@@ -6,6 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Заявки - Админ</title>
   <style>
+  * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     body {
       font-family: 'Segoe UI', sans-serif;
       margin: 0;
@@ -19,28 +24,46 @@
       width: 240px;
       background-color: #1e1e2f;
       color: white;
-      padding: 2rem;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
     }
 
     .sidebar h2 {
       font-size: 24px;
       margin-bottom: 2rem;
+      text-align: center;
     }
 
-    .sidebar ul {
-      list-style: none;
-      padding: 0;
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
 
-    .sidebar ul li {
-      margin: 1rem 0;
-      cursor: pointer;
+    .menu-link {
+      display: block;
+      background-color: #2a2a40;
+      padding: 0.8rem 1rem;
+      border-radius: 12px;
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.3s ease;
     }
 
-    .sidebar ul li:hover {
+    .menu-link:hover {
+      background-color: #3b3b5a;
       color: #ffcc00;
     }
 
+    .menu-link.active {
+      background-color: #4e73df;
+      color: white;
+    }
+
+    /* Main content */
     .main {
       flex: 1;
       padding: 2rem;
@@ -152,21 +175,23 @@
 </head>
 <body>
 
-  <div class="sidebar">
+    <div class="sidebar">
     <h2>🏫 ШколаCRM</h2>
-    <ul>
-      <li onclick="window.location.href='{% url 'dashboard' %}'">Панель</li>
-      <li>Ученики</li>
-      <li>Преподаватели</li>
-      <li>Заявки</li>
-    </ul>
+    <nav class="menu">
+      <a href="{% url 'dashboard' %}" class="menu-link" >🏠 Панель</a>
+      <a href="{% url 'approve' %}" class="menu-link active">📄 Заявки</a>
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+      <a href="#" class="menu-link">🎓 Ученики</a>
+
+    </nav>
   </div>
 
   <div class="main">
     <h1>Заявки на регистрацию</h1>
 
     <div class="search-bar">
-      <input type="text" id="search" placeholder="🔍 Поиск по имени или email...">
+      <input type="text" id="search" placeholder="🔍 Поиск по имени ...">
     </div>
 
     <table id="requestTable">

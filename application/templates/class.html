@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Сотрудники</title>
+  <title>Классы</title>
   <style>
     * {
       box-sizing: border-box;
@@ -225,6 +225,7 @@
         margin-top: 0.5rem;
       }
     }
+
     .modal {
   display: none;
   position: fixed;
@@ -363,8 +364,8 @@
     <nav class="menu">
       <a href="{% url 'dashboard' %}" class="menu-link">🏠 Панель</a>
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
-      <a href="{% url 'staff' %}" class="menu-link active">👨‍🏫 Сотрудники</a>
-        <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+        <a href="{% url 'class' %}" class="menu-link active ">📚 Классы</a>
       <a href="#" class="menu-link">🎓 Ученики</a>
 
     </nav>
@@ -372,11 +373,11 @@
 
   <!-- Main content -->
   <div class="main">
-    <h1>Сотрудники</h1>
+    <h1>Классы</h1>
 
     <div class="top-bar">
-      <div class="search">
-        <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
+             <div class="search">
+
       </div>
       <button class="btn-add" >➕ Добавить</button>
     </div>
@@ -384,77 +385,25 @@
     <table id="staffTable">
       <thead>
         <tr>
-       <th>Фото</th>
-      <th>Фамилия</th>
-      <th>Имя</th>
-      <th>Отчество</th>
-      <th>Год рождения</th>
-      <th>Пол</th>
-      <th>Номер телефона</th>
-      <th>Адрес</th>
-      <th>Серия паспорта</th>
-      <th>Должность</th>
-      <th>CV (RU)</th>
-      <th>CV (UZ)</th>
-      <th>Диплом</th>
+       <th>Класс</th>
       <th>Редактировать</th>
 
         </tr>
       </thead>
       <tbody id="staffBody">
-      {% for item in staff %}
+      {% for item in class %}
         <tr class="staff-row">
-  {% if item.photo %}
-  <td data-label="Фото"><img src="{{item.photo.url}}" alt="staff" /></td>
-  {% else %}
-          <td></td>
-  {% endif %}
-          <td data-label="Фамилия">{{item.lastname}}</td>
-  <td data-label="Имя">{{item.name}}</td>
-  <td data-label="Отчество">{{item.middle_name}}</td>
-  <td data-label="Год рождения">{{item.date_birth|date:'d.m.Y'}}</td>
-  <td data-label="Пол">{{item.get_position_gender_display}}</td>
-  <td data-label="Номер телефона">{{item.phone}}</td>
-  <td data-label="Адрес">{{item.adres}}</td>
-  <td data-label="Серия паспорта">{{item.passport}}</td>
-  <td data-label="Должность">{{item.get_position_display}}</td>
-          {% if item.cv_rus %}
-  <td data-label="CV (RU)">
-    <button class="btn download" onclick="downloadCV('{{item.cv_rus.url}}')">📄</button>
-  </td>
-          {% else %}
-          <td></td>
-          {% endif %}
 
-  {% if item.cv_uz %}
-  <td data-label="CV (UZ)">
-    <button class="btn download" onclick="downloadCV('{{item.cv_uz.url}}')">📄</button>
-  </td>
-          {% else %}
-          <td></td>
-          {% endif %}
-          {% if item.diplom %}
-  <td data-label="Диплом">
-    <button class="btn download" onclick="downloadCV('{{item.diplom.url}}')">🎓</button>
-  </td>
-          {% else %}
-          <td></td>
-          {% endif %}
+
+
+          <td data-label="Класс">{{item.name}}</td>
+
 
           <td data-label="Действия">
 <button class="btn edit"
   onclick="editStaff(this)"
   data-id="{{ item.id }}"
-  data-lastname="{{ item.lastname }}"
   data-name="{{ item.name }}"
-  data-middle_name="{{ item.middle_name }}"
-  data-position="{{ item.position }}"
-  data-position_gender="{{ item.position_gender }}"
-  data-date_birth="{{ item.date_birth|date:'Y-m-d' }}"
-  data-adres="{{ item.adres }}"
-  data-passport="{{ item.passport }}"
-  data-phone="{{ item.phone }}"
-
 
 >
 
@@ -477,61 +426,8 @@
 
       {% csrf_token %}
       <div class="form-fields">
-        <!-- Фото первым -->
-      <div class="file-upload">
-  <label>Фото:</label>
-  <label class="custom-file">
-    <input type="file" name="photo" accept="image/*" onchange="updateFileLabel(this)" />
-    <span data-default="📷 Загрузить фото">📷 Загрузить фото</span>
-  </label>
-</div>
         <input type="hidden" id="formId" name="id" />
-        <input type="text" name="lastname" placeholder="Фамилия" required />
-        <input type="text" name="name" placeholder="Имя" required />
-        <input type="text" name="middle_name" placeholder="Отчество" required />
-        <input type="date" name="date_birth" placeholder="Год рождения" required/>
-        <select name="position_gender" required>
-          <option value="">Пол</option>
-          <option value="male">Муж</option>
-          <option value="female">Жен</option>
-        </select>
-        <input type="tel" name="phone"  placeholder="+998901234567"
-       pattern="^\+998\d{9}$"
-       title="+998901234567"  required/>
-        <input type="text" name="adres" placeholder="Адрес"  required />
-        <input type="text" name="passport" placeholder="Серия паспорта"  required />
-        <select name="position" required>
-          <option value="">Выберите должность</option>
-          <option value="teacher">Учитель</option>
-          <option value="other">Другое</option>
-        </select>
-
-        <!-- CV RU -->
-        <div class="file-upload">
-  <label>CV (RU):</label>
-  <label class="custom-file">
-    <input type="file" name="cv_rus" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
-    <span data-default="📄 Загрузить CV (RU)">📄 Загрузить CV (RU)</span>
-  </label>
-</div>
-
-        <!-- CV UZ -->
-      <div class="file-upload">
-  <label>CV (UZ):</label>
-  <label class="custom-file">
-    <input type="file" name="cv_uz" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
-    <span data-default="📄 Загрузить CV (UZ)">📄 Загрузить CV (UZ)</span>
-  </label>
-</div>
-
-        <!-- Диплом -->
-       <div class="file-upload">
-  <label>Диплом:</label>
-  <label class="custom-file">
-    <input type="file" name="diplom" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
-    <span data-default="🎓 Загрузить диплом">🎓 Загрузить диплом</span>
-  </label>
-</div>
+        <input type="text" name="name" placeholder="1-А" required />
 
       <div class="modal-actions">
         <button type="submit" class="btn primary">💾 Сохранить</button>
@@ -545,53 +441,13 @@
 
 
 
-  <script>
-   function downloadCV(url) {
-  if (!url) return alert('Файл не найден');
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = ''; // Optional: browser decides filename
-  link.click();
-}
 
 
 
-    // Поиск
-    document.getElementById('searchInput').addEventListener('input', function () {
-      const filter = this.value.toLowerCase();
-      const rows = document.querySelectorAll('#staffTable tbody tr');
-      rows.forEach(row => {
-        const name = row.cells[1].textContent.toLowerCase();
-        const role = row.cells[2].textContent.toLowerCase();
-        row.style.display = (name.includes(filter) || role.includes(filter)) ? '' : 'none';
-      });
-    });
-  </script>
-
-<script>
-  function showFileName(input) {
-    const fileName = input.files[0]?.name;
-    const infoText = input.closest('.file-upload').querySelector('.file-name');
-    if (fileName) {
-      infoText.textContent = "📎 Загружен: " + fileName;
-    } else {
-      infoText.textContent = "";
-    }
-  }
-    function updateFileLabel(input) {
-    const fileName = input.files[0]?.name;
-    const span = input.parentElement.querySelector('span');
-    if (fileName) {
-      span.textContent = `📎 ${fileName}`;
-    } else {
-      span.textContent = span.dataset.default;
-    }
-  }
-</script>
 <script>
 
   function openModal() {
-    document.getElementById('modalTitle').textContent = 'Добавить сотрудника';
+    document.getElementById('modalTitle').textContent = 'Добавить класса';
     document.getElementById('addStaffModal').style.display = 'flex';
 
     const form = document.getElementById('staffForm');
@@ -624,21 +480,15 @@
   }
 
   function editStaff(button) {
-    document.getElementById('modalTitle').textContent = 'Редактировать сотрудника';
+    document.getElementById('modalTitle').textContent = 'Редактировать класса';
     document.getElementById('addStaffModal').style.display = 'flex';
 
     // Fill in all the fields from data attributes
     document.getElementById('formId').value = button.dataset.id || '';
     document.getElementById('formAction').value = 'update';
-    document.querySelector('[name="lastname"]').value = button.dataset.lastname || '';
+
     document.querySelector('[name="name"]').value = button.dataset.name || '';
-    document.querySelector('[name="middle_name"]').value = button.dataset.middle_name || '';
-    document.querySelector('[name="position_gender"]').value = button.dataset.position_gender || '';
-    document.querySelector('[name="phone"]').value = button.dataset.phone || '';
-    document.querySelector('[name="date_birth"]').value = button.dataset.date_birth || '';
-    document.querySelector('[name="position"]').value = button.dataset.position || '';
-    document.querySelector('[name="passport"]').value = button.dataset.passport || '';
-    document.querySelector('[name="adres"]').value = button.dataset.adres || '';
+
 
     // Add Delete button if it doesn't exist
    const actions = document.querySelector('.modal-actions');
@@ -649,7 +499,7 @@ if (!document.getElementById('deleteButton')) {
   delBtn.className = 'btn';
   delBtn.textContent = '🗑 Удалить';
   delBtn.onclick = function () {
-    if (confirm('Удалить сотрудника?')) {
+    if (confirm('Удалить?')) {
       // Set action to delete only when confirmed
       document.getElementById('formAction').value = 'delete';
 

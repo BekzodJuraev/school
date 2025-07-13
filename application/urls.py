@@ -8,7 +8,9 @@ urlpatterns=[
     path('dashboard/', views.Dashboard.as_view(), name='dashboard'),
     path('logout/',views.logout_view,name='logout'),
     path('approve/',views.ApproveView.as_view(),name='approve'),
-    path('staff/',views.StaffView.as_view(),name='staff')
+    path('staff/',views.StaffView.as_view(),name='staff'),
+    path('class/',views.ClassView.as_view(),name='class'),
+    path('student/',views.StudentView.as_view(),name='student')
 
 
 

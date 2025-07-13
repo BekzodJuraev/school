@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Сотрудники</title>
+  <title>Ученики</title>
   <style>
     * {
       box-sizing: border-box;
@@ -352,6 +352,28 @@
   margin-top: 0.2rem;
   margin-left: 0.2rem;
 }
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-row input {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  font-size: 14px;
+}
+
+.input-separator {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #333;
+}
+
 
   </style>
 </head>
@@ -363,16 +385,16 @@
     <nav class="menu">
       <a href="{% url 'dashboard' %}" class="menu-link">🏠 Панель</a>
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
-      <a href="{% url 'staff' %}" class="menu-link active">👨‍🏫 Сотрудники</a>
-        <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
-      <a href="#" class="menu-link">🎓 Ученики</a>
+      <a href="{% url 'staff' %}" class="menu-link">👨‍🏫 Сотрудники</a>
+        <a href="{% url 'class' %}" class="menu-link">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link active ">🎓 Ученики</a>
 
     </nav>
   </div>
 
   <!-- Main content -->
   <div class="main">
-    <h1>Сотрудники</h1>
+    <h1>Ученики</h1>
 
     <div class="top-bar">
       <div class="search">
@@ -392,11 +414,11 @@
       <th>Пол</th>
       <th>Номер телефона</th>
       <th>Адрес</th>
-      <th>Серия паспорта</th>
-      <th>Должность</th>
-      <th>CV (RU)</th>
-      <th>CV (UZ)</th>
-      <th>Диплом</th>
+      <th>Cвидетельство о рождении</th>
+      <th>Номер приказа</th>
+      <th>Дата приказа</th>
+      <th>Документ</th>
+       <th>Класс</th>
       <th>Редактировать</th>
 
         </tr>
@@ -490,6 +512,14 @@
         <input type="text" name="name" placeholder="Имя" required />
         <input type="text" name="middle_name" placeholder="Отчество" required />
         <input type="date" name="date_birth" placeholder="Год рождения" required/>
+            <select name="school_class" required>
+          <option value="">Класс</option>
+                 {% for item in classes %}
+        <option value="{{ item.pk }}">{{ item.name }} </option>
+      {% endfor %}
+
+        </select>
+
         <select name="position_gender" required>
           <option value="">Пол</option>
           <option value="male">Муж</option>
@@ -499,39 +529,23 @@
        pattern="^\+998\d{9}$"
        title="+998901234567"  required/>
         <input type="text" name="adres" placeholder="Адрес"  required />
-        <input type="text" name="passport" placeholder="Серия паспорта"  required />
-        <select name="position" required>
-          <option value="">Выберите должность</option>
-          <option value="teacher">Учитель</option>
-          <option value="other">Другое</option>
-        </select>
+        <input type="text" name="passport" placeholder="Cвидетельство о рождении"  required />
+    <div class="form-row">
+  <input type="number" name="prikaz" placeholder="Номер приказа" required />
+  <span class="input-separator">от</span>
+  <input type="date" name="prikaz_date" placeholder="Дата приказа" required />
+</div>
 
-        <!-- CV RU -->
+
         <div class="file-upload">
-  <label>CV (RU):</label>
+  <label>Документ:</label>
   <label class="custom-file">
     <input type="file" name="cv_rus" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
-    <span data-default="📄 Загрузить CV (RU)">📄 Загрузить CV (RU)</span>
+    <span data-default="📄 Загрузить Документ">📄 Загрузить Документ</span>
   </label>
 </div>
 
-        <!-- CV UZ -->
-      <div class="file-upload">
-  <label>CV (UZ):</label>
-  <label class="custom-file">
-    <input type="file" name="cv_uz" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
-    <span data-default="📄 Загрузить CV (UZ)">📄 Загрузить CV (UZ)</span>
-  </label>
-</div>
 
-        <!-- Диплом -->
-       <div class="file-upload">
-  <label>Диплом:</label>
-  <label class="custom-file">
-    <input type="file" name="diplom" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
-    <span data-default="🎓 Загрузить диплом">🎓 Загрузить диплом</span>
-  </label>
-</div>
 
       <div class="modal-actions">
         <button type="submit" class="btn primary">💾 Сохранить</button>
