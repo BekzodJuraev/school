@@ -205,11 +205,13 @@
     <h2>🏫 ШколаCRM</h2>
     <nav class="menu">
       <a href="{% url 'dashboard' %}" class="menu-link active" >🏠 Панель</a>
+       {% if request.user.profile.position == 'admin' %}
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+      {% endif %}
       <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
       <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
       <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
-
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
     </nav>
   </div>
 
@@ -222,7 +224,7 @@
     <section class="cards">
       <div class="card">
         <h3>Всего учеников</h3>
-        <p>0</p>
+        <p>{{student}}</p>
       </div>
         <div class="card">
         <h3>Сотрудники</h3>
@@ -232,10 +234,12 @@
         <h3>Преподавателей</h3>
         <p>{{teacher}}</p>
       </div>
+      {% if request.user.profile.position == 'admin' %}
       <div class="card">
         <h3>Доход за месяц</h3>
         <p>0 сум</p>
       </div>
+      {% endif %}
 
 
     </section>
@@ -243,7 +247,7 @@
     <section class="actions">
       <h2>Быстрые действия</h2>
       <div class="button-group">
-        <button class="btn primary" onclick="window.location.href='{% url 'staff' %}'">➕ Добавить ученика</button>
+        <button class="btn primary" onclick="window.location.href='{% url 'student' %}'">➕ Добавить ученика</button>
         <button class="btn success" onclick="window.location.href='{% url 'staff' %}'">➕ Добавить сотрудника</button>
         {% if asd %}
         <button class="btn info" onclick="alert('Генерация отчёта...')">📊 Сформировать отчёт</button> */

@@ -28,6 +28,7 @@ class Dashboard(LoginRequiredMixin,TemplateView):
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
+      context['student'] = Student.objects.filter(archive=False).count()
       context['staff'] = Staff.objects.all().count()
       context['teacher'] = Staff.objects.filter(position='teacher').count()
       return context
@@ -102,30 +103,87 @@ class Register(TemplateView):
       )
 
       return redirect('login')
+
+class ArchiveStudent(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'archive.html'
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+      id = request.POST.get('id')
+
+      prikaz = request.POST.get('prikaz')
+      prikaz_date = request.POST.get('prikaz_date')
+
+
+
+      if action == 'delete':
+         Student.objects.filter(id=id).update(prikaz=prikaz, prikaz_date=prikaz_date, archive=False)
+
+
+
+      return redirect(request.path)
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['class'] = Student.objects.filter(archive=True).select_related('school_class')
+
+      return context
 class StudentView(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'student.html'
 
    def post(self, request, *args, **kwargs):
       action = request.POST.get('action')
-      name = request.POST.get('name')
       id = request.POST.get('id')
 
+      name = request.POST.get('name')
+      lastname = request.POST.get('lastname')
+      middle_name = request.POST.get('middle_name')
+      position_gender = request.POST.get('position_gender')
+      date_birth = request.POST.get('date_birth')
+      phone = request.POST.get('phone')
+      photo = request.FILES.get('photo')
+      adres = request.POST.get('adres')
+      passport = request.POST.get('passport')
+      prikaz = request.POST.get('prikaz')
+      prikaz_date = request.POST.get('prikaz_date')
+      school_class = request.POST.get('school_class')
+      document = request.FILES.get('document')
+
       if action == 'create':
-         SchoolClass.objects.create(name=name)
+         Student.objects.create(name=name,lastname=lastname,middle_name=middle_name,position_gender=position_gender,date_birth=date_birth,phone=phone,photo=photo,adres=adres,passport=passport,prikaz=prikaz,prikaz_date=prikaz_date,school_class_id=school_class,document=document)
+
+
       elif action == 'update':
-         SchoolClass.objects.filter(id=id).update(name=name)
+         staff = Student.objects.filter(id=id).first()
+         staff.name = name
+         staff.lastname = lastname
+         staff.middle_name = middle_name
+         staff.position_gender = position_gender
+         staff.date_birth = date_birth
+         staff.phone = phone
+         if 'photo' in request.FILES:
+            staff.photo = request.FILES['photo']
+         if 'document' in request.FILES:
+            staff.document = request.FILES['document']
+         staff.prikaz=prikaz
+         staff.prikaz_date=prikaz_date
+         staff.adres = adres
+         staff.passport = passport
+         staff.school_class_id=school_class
+         staff.school_class.save()
+         staff.save()
 
 
       elif action == 'delete':
 
-         SchoolClass.objects.filter(id=id).delete()
+         Student.objects.filter(id=id).update(prikaz_archive=prikaz,prikaz_date_archive=prikaz_date,archive=True)
 
       return redirect(request.path)
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
-      context['class'] = Student.objects.all()
+      context['class'] = Student.objects.filter(archive=False).select_related('school_class')
       context['classes']=SchoolClass.objects.all()
       return context
 
@@ -136,9 +194,6 @@ class ClassView(LoginRequiredMixin,TemplateView):
 
    def post(self, request, *args, **kwargs):
       action = request.POST.get('action')
-      name =request.POST.get('name')
-      id=request.POST.get('id')
-
       if action == 'create':
          SchoolClass.objects.create(name=name)
       elif action == 'update':

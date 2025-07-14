@@ -363,10 +363,13 @@
     <h2>🏫 ШколаCRM</h2>
     <nav class="menu">
       <a href="{% url 'dashboard' %}" class="menu-link">🏠 Панель</a>
+      {% if request.user.profile.position == 'admin' %}
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+      {% endif %}
       <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
         <a href="{% url 'class' %}" class="menu-link active ">📚 Классы</a>
-      <a href="#" class="menu-link">🎓 Ученики</a>
+      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
 
     </nav>
   </div>

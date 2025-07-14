@@ -46,6 +46,10 @@ class Student(models.Model):
     ]
     position_gender = models.CharField(max_length=20, choices=Gender_CHOICES, blank=True, null=True)
 
+    prikaz_archive = models.IntegerField(default=None,blank=True,null=True)
+    prikaz_date_archive = models.DateField(blank=True, null=True)
+    archive=models.BooleanField(default=False)
+    document = models.FileField(blank=True, null=True, upload_to='student/')
     def __str__(self):
         return f"{self.lastname} {self.name} - {self.school_class}"
 

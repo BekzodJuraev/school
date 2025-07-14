@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Сотрудники</title>
+  <title>Ученики</title>
   <style>
     * {
       box-sizing: border-box;
@@ -352,6 +352,28 @@
   margin-top: 0.2rem;
   margin-left: 0.2rem;
 }
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-row input {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  font-size: 14px;
+}
+
+.input-separator {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #333;
+}
+
 
   </style>
 </head>
@@ -365,22 +387,23 @@
        {% if request.user.profile.position == 'admin' %}
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
       {% endif %}
-      <a href="{% url 'staff' %}" class="menu-link active">👨‍🏫 Сотрудники</a>
-        <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
-      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
-        <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+      <a href="{% url 'staff' %}" class="menu-link">👨‍🏫 Сотрудники</a>
+        <a href="{% url 'class' %}" class="menu-link">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link  ">🎓 Ученики</a>
+        <a href="{% url 'archive' %}" class="menu-link active">🗄️ Архив</a>
+
     </nav>
   </div>
 
   <!-- Main content -->
   <div class="main">
-    <h1>Сотрудники</h1>
+    <h1>Архив</h1>
 
     <div class="top-bar">
       <div class="search">
         <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
       </div>
-      <button class="btn-add" >➕ Добавить</button>
+
     </div>
 
     <table id="staffTable">
@@ -394,17 +417,18 @@
       <th>Пол</th>
       <th>Номер телефона</th>
       <th>Адрес</th>
-      <th>Серия паспорта</th>
-      <th>Должность</th>
-      <th>CV (RU)</th>
-      <th>CV (UZ)</th>
-      <th>Диплом</th>
-      <th>Редактировать</th>
+      <th>Cвидетельство о рождении</th>
+      <th>Номер приказа</th>
+      <th>Дата приказа</th>
+       <th>Класс</th>
+            <th>Документ</th>
+
+      <th>Восстановить</th>
 
         </tr>
       </thead>
       <tbody id="staffBody">
-      {% for item in staff %}
+      {% for item in class %}
         <tr class="staff-row">
   {% if item.photo %}
   <td data-label="Фото"><img src="{{item.photo.url}}" alt="staff" /></td>
@@ -419,50 +443,25 @@
   <td data-label="Номер телефона">{{item.phone}}</td>
   <td data-label="Адрес">{{item.adres}}</td>
   <td data-label="Серия паспорта">{{item.passport}}</td>
-  <td data-label="Должность">{{item.get_position_display}}</td>
-          {% if item.cv_rus %}
-  <td data-label="CV (RU)">
-    <button class="btn download" onclick="downloadCV('{{item.cv_rus.url}}')">📄</button>
-  </td>
-          {% else %}
-          <td></td>
-          {% endif %}
+  <td data-label="Приказ">{{item.prikaz}}</td>
+    <td data-label="Номер приказа">{{item.prikaz_date|date:'d.m.Y'}}</td>
+    <td data-label="Класс">{{item.school_class.name}}</td>
 
-  {% if item.cv_uz %}
+  {% if item.document %}
   <td data-label="CV (UZ)">
-    <button class="btn download" onclick="downloadCV('{{item.cv_uz.url}}')">📄</button>
-  </td>
-          {% else %}
-          <td></td>
-          {% endif %}
-          {% if item.diplom %}
-  <td data-label="Диплом">
-    <button class="btn download" onclick="downloadCV('{{item.diplom.url}}')">🎓</button>
+    <button class="btn download" onclick="downloadCV('{{item.document.url}}')">📄</button>
   </td>
           {% else %}
           <td></td>
           {% endif %}
 
-          <td data-label="Действия">
+
+                   <td data-label="Действия">
 <button class="btn edit"
-  onclick="editStaff(this)"
-  data-id="{{ item.id }}"
-  data-lastname="{{ item.lastname }}"
-  data-name="{{ item.name }}"
-  data-middle_name="{{ item.middle_name }}"
-  data-position="{{ item.position }}"
-  data-position_gender="{{ item.position_gender }}"
-  data-date_birth="{{ item.date_birth|date:'Y-m-d' }}"
-  data-adres="{{ item.adres }}"
-  data-passport="{{ item.passport }}"
-  data-phone="{{ item.phone }}"
-
-
->
-
-  ✏️
+  onclick="openDeleteModalFromEdit(this)"
+  data-id="{{ item.id }}">
+ ♻️ Восстановить
 </button>
-  </td>
 </tr>
     {% endfor %}
       </tbody>
@@ -471,79 +470,27 @@
    <div class="pagination" id="paginationContainer"></div>
 
 
-<!-- Модальное окно -->
-<div id="addStaffModal" class="modal">
+
+<div id="deleteStudentModal" class="modal" style="display: none;">
   <div class="modal-content">
-    <h2 id="modalTitle">Добавить сотрудника</h2>
-    <form id="staffForm" method="post" enctype="multipart/form-data">
-
+    <h2>Восстановить ученика</h2>
+    <form method="post">
       {% csrf_token %}
-      <div class="form-fields">
-        <!-- Фото первым -->
-      <div class="file-upload">
-  <label>Фото:</label>
-  <label class="custom-file">
-    <input type="file" name="photo" accept="image/*" onchange="updateFileLabel(this)" />
-    <span data-default="📷 Загрузить фото">📷 Загрузить фото</span>
-  </label>
-</div>
-        <input type="hidden" id="formId" name="id" />
-        <input type="text" name="lastname" placeholder="Фамилия" required />
-        <input type="text" name="name" placeholder="Имя" required />
-        <input type="text" name="middle_name" placeholder="Отчество" required />
-        <input type="date" name="date_birth" placeholder="Год рождения" required/>
-        <select name="position_gender" required>
-          <option value="">Пол</option>
-          <option value="male">Муж</option>
-          <option value="female">Жен</option>
-        </select>
-        <input type="tel" name="phone"  placeholder="+998901234567"
-       pattern="^\+998\d{9}$"
-       title="+998901234567"  required/>
-        <input type="text" name="adres" placeholder="Адрес"  required />
-        <input type="text" name="passport" placeholder="Серия паспорта"  required />
-        <select name="position" required>
-          <option value="">Выберите должность</option>
-          <option value="teacher">Учитель</option>
-          <option value="other">Другое</option>
-        </select>
-
-        <!-- CV RU -->
-        <div class="file-upload">
-  <label>CV (RU):</label>
-  <label class="custom-file">
-    <input type="file" name="cv_rus" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
-    <span data-default="📄 Загрузить CV (RU)">📄 Загрузить CV (RU)</span>
-  </label>
+      <input type="hidden" id="deleteStudentId" name="id">
+        <input type="hidden"  name="action" value="delete">
+      <div class="form-row">
+  <input type="number" name="prikaz" placeholder="Номер приказа" required />
+  <span class="input-separator">от</span>
+  <input type="date" name="prikaz_date" placeholder="Дата приказа" required />
 </div>
 
-        <!-- CV UZ -->
-      <div class="file-upload">
-  <label>CV (UZ):</label>
-  <label class="custom-file">
-    <input type="file" name="cv_uz" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
-    <span data-default="📄 Загрузить CV (UZ)">📄 Загрузить CV (UZ)</span>
-  </label>
-</div>
-
-        <!-- Диплом -->
-       <div class="file-upload">
-  <label>Диплом:</label>
-  <label class="custom-file">
-    <input type="file" name="diplom" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
-    <span data-default="🎓 Загрузить диплом">🎓 Загрузить диплом</span>
-  </label>
-</div>
-
-      <div class="modal-actions">
-        <button type="submit" class="btn primary">💾 Сохранить</button>
-        <button type="button" class="btn" onclick="closeModal()">❌ Отмена</button>
+      <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+        <button type="submit" class="btn primary">✅ Подтвердить</button>
+        <button type="button" class="btn" onclick="closeDeleteModal()">❌ Отмена</button>
       </div>
-        <input type="hidden" name="action" id="formAction" value="create">
     </form>
   </div>
 </div>
-
 
 
 
@@ -590,85 +537,7 @@
     }
   }
 </script>
-<script>
 
-  function openModal() {
-    document.getElementById('modalTitle').textContent = 'Добавить сотрудника';
-    document.getElementById('addStaffModal').style.display = 'flex';
-
-    const form = document.getElementById('staffForm');
-    form.reset();
-
-    // Clear hidden fields and reset action
-    document.getElementById('formId').value = '';
-    document.getElementById('formAction').value = 'create';
-
-    // Reset file upload labels
-    const spans = document.querySelectorAll('.custom-file span');
-    spans.forEach(span => {
-      span.textContent = span.dataset.default;
-    });
-
-    // Remove delete button if exists
-    const deleteBtn = document.getElementById('deleteButton');
-    if (deleteBtn) deleteBtn.remove();
-  }
-
-  document.querySelector('.btn-add').addEventListener('click', function (e) {
-    e.preventDefault();
-    openModal();
-  });
-
-
-
-  function closeModal() {
-    document.getElementById('addStaffModal').style.display = 'none';
-  }
-
-  function editStaff(button) {
-    document.getElementById('modalTitle').textContent = 'Редактировать сотрудника';
-    document.getElementById('addStaffModal').style.display = 'flex';
-
-    // Fill in all the fields from data attributes
-    document.getElementById('formId').value = button.dataset.id || '';
-    document.getElementById('formAction').value = 'update';
-    document.querySelector('[name="lastname"]').value = button.dataset.lastname || '';
-    document.querySelector('[name="name"]').value = button.dataset.name || '';
-    document.querySelector('[name="middle_name"]').value = button.dataset.middle_name || '';
-    document.querySelector('[name="position_gender"]').value = button.dataset.position_gender || '';
-    document.querySelector('[name="phone"]').value = button.dataset.phone || '';
-    document.querySelector('[name="date_birth"]').value = button.dataset.date_birth || '';
-    document.querySelector('[name="position"]').value = button.dataset.position || '';
-    document.querySelector('[name="passport"]').value = button.dataset.passport || '';
-    document.querySelector('[name="adres"]').value = button.dataset.adres || '';
-
-    // Add Delete button if it doesn't exist
-   const actions = document.querySelector('.modal-actions');
-if (!document.getElementById('deleteButton')) {
-  const delBtn = document.createElement('button');
-  delBtn.id = 'deleteButton';
-  delBtn.type = 'button';
-  delBtn.className = 'btn';
-  delBtn.textContent = '🗑 Удалить';
-  delBtn.onclick = function () {
-    if (confirm('Удалить сотрудника?')) {
-      // Set action to delete only when confirmed
-      document.getElementById('formAction').value = 'delete';
-
-      // Optionally submit the form
-      document.getElementById('staffForm').submit();
-
-      // OR redirect if you handle deletion via URL (your current approach)
-      // window.location.href = '/delete/' + document.getElementById('formId').value + '/';
-    }
-  };
-  actions.prepend(delBtn);
-}
-  }
-
-
-
-</script>
 <script>
   const rowsPerPage = 10; // Customize per your needs
   const rows = document.querySelectorAll('.staff-row');
@@ -701,5 +570,23 @@ if (!document.getElementById('deleteButton')) {
   displayRows(0);
   setupPagination();
 </script>
+<script>
+function openDeleteModalFromEdit(button) {
+  const id = button.dataset.id;
+  const modal = document.getElementById('deleteStudentModal');
+  const hiddenInput = document.getElementById('deleteStudentId');
+
+  if (modal && hiddenInput) {
+    hiddenInput.value = id;
+    modal.style.display = 'flex';
+  }
+}
+
+function closeDeleteModal() {
+  const modal = document.getElementById('deleteStudentModal');
+  if (modal) modal.style.display = 'none';
+}
+</script>
+
 </body>
 </html>
