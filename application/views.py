@@ -194,6 +194,8 @@ class ClassView(LoginRequiredMixin,TemplateView):
 
    def post(self, request, *args, **kwargs):
       action = request.POST.get('action')
+      name=request.POST.get('name')
+      id=request.POST.get('id')
       if action == 'create':
          SchoolClass.objects.create(name=name)
       elif action == 'update':
