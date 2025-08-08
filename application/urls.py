@@ -11,7 +11,8 @@ urlpatterns=[
     path('staff/',views.StaffView.as_view(),name='staff'),
     path('class/',views.ClassView.as_view(),name='class'),
     path('student/',views.StudentView.as_view(),name='student'),
-    path('archive/',views.ArchiveStudent.as_view(),name='archive')
+    path('archive/',views.ArchiveStudent.as_view(),name='archive'),
+    path('warehouse/',views.Warehouse.as_view(),name='warehouse')
 
 
 

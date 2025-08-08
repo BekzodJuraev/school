@@ -65,7 +65,9 @@ class Login(TemplateView):
 
       return render(request, self.template_name, {'errors': errors})
 
-
+class Warehouse(LoginRequiredMixin,TemplateView):
+   template_name = 'warehouse.html'
+   login_url = reverse_lazy('login')
 
 
 
