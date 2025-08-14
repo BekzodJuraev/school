@@ -79,3 +79,17 @@ class Staff(models.Model):
     adres=models.CharField(max_length=200)
     passport=models.CharField(max_length=50)
     created_at=models.DateField(auto_now_add=True)
+
+
+class Warehouse(models.Model):
+    created_at = models.DateField(auto_now_add=True)
+    quantity=models.IntegerField(default=0)
+    categories=models.CharField(max_length=100)
+    name=models.CharField(max_length=200)
+    price=models.DecimalField(max_digits=10, decimal_places=2,default=0)
+
+
+    def __str__(self):
+        return self.name
+
+

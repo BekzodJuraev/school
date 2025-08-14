@@ -4,6 +4,7 @@ from django.views.generic import View,ListView, CreateView, UpdateView, DeleteVi
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render,redirect
 from django.urls import reverse_lazy
+from django.db.models import F, DecimalField, ExpressionWrapper
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import json
@@ -20,7 +21,7 @@ from django.db.models import Sum,Q
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
-from .models import Profile,Staff,SchoolClass,Student
+from .models import Profile,Staff,SchoolClass,Student,Warehouse
 
 class Dashboard(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
@@ -65,9 +66,32 @@ class Login(TemplateView):
 
       return render(request, self.template_name, {'errors': errors})
 
-class Warehouse(LoginRequiredMixin,TemplateView):
+class Warehouse_View(LoginRequiredMixin,TemplateView):
    template_name = 'warehouse.html'
    login_url = reverse_lazy('login')
+
+   def post(self, request, *args, **kwargs):
+      action=request.POST.get('action')
+      print(action)
+      if action == 'add':
+         name=request.POST.get('name')
+         price = request.POST.get('price')
+         category=request.POST.get('category')
+
+         Warehouse.objects.get_or_create(name=name,categories=category,price=price)
+      return redirect(request.path)
+
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['warehouse']=Warehouse.objects.annotate(
+    total=ExpressionWrapper(
+        F('quantity') * F('price'),
+        output_field=DecimalField(max_digits=12, decimal_places=2)
+    )
+)
+      return context
+
 
 
 
