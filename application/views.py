@@ -72,13 +72,20 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
 
    def post(self, request, *args, **kwargs):
       action=request.POST.get('action')
-      print(action)
+      pk = request.POST.get('pk')
+      name = request.POST.get('name')
+      price = request.POST.get('price')
+      category = request.POST.get('category')
+
       if action == 'add':
-         name=request.POST.get('name')
-         price = request.POST.get('price')
-         category=request.POST.get('category')
 
          Warehouse.objects.get_or_create(name=name,categories=category,price=price)
+
+      elif action == 'delete':
+         Warehouse.objects.filter(pk=pk).delete()
+
+      elif action == 'edit':
+         Warehouse.objects.filter(pk=pk).update(name=name,categories=category,price=price)
       return redirect(request.path)
 
 

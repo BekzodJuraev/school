@@ -581,17 +581,17 @@
     </thead>
     <tbody>
     {% for item in warehouse %}
-      <tr data-id="{{item.pk}}">
-        <td id="name">{{item.name}}</td>
-        <td id="category">{{item.categories}}</td>
-        <td id="stock">{{item.quantity}}</td>
-        <td id="price">{{item.price}}</td>
-        <td id="total">{{item.total}}</td>
-        <td>
-          <button class="btn edit" data-id="1">✏️</button>
-          <button class="btn delete" data-id="1">🗑️</button>
-        </td>
-      </tr>
+     <tr data-id="{{item.pk}}">
+  <td id="name-{{item.pk}}">{{item.name}}</td>
+  <td id="category-{{item.pk}}">{{item.categories}}</td>
+  <td id="stock-{{item.pk}}">{{item.quantity}}</td>
+  <td id="price-{{item.pk}}">{{item.price}}</td>
+  <td id="total-{{item.pk}}">{{item.total}}</td>
+  <td>
+    <button class="btn edit" data-id="{{item.pk}}">✏️</button>
+    <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
+  </td>
+</tr>
     {% endfor %}
     </tbody>
   </table>
@@ -682,6 +682,7 @@
            {% csrf_token %}
       <label for="itemName">Название товара</label>
       <input type="text" id="itemName" name="name" required />
+       <input type="hidden" id="itemPk" name="pk" value="">
 
       <label for="itemCategory">Категория</label>
       <select id="itemCategory" name="category" required>
@@ -706,14 +707,24 @@
 <!-- Delete Confirmation Modal -->
 <div class="modal" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" tabindex="-1">
   <div class="modal-content">
-    <h2 id="deleteModalTitle">Удалить товар?</h2>
-    <p id="deleteItemName" style="font-weight:600; margin-bottom: 1.5rem;"></p>
-    <div class="modal-actions">
-      <button type="button" class="btn btn-cancel" id="cancelDeleteBtn">Отмена</button>
-      <button type="button" class="btn btn-primary" id="confirmDeleteBtn">Удалить</button>
-    </div>
+    <form method="POST" >
+      {% csrf_token %}
+      <h2 id="deleteModalTitle">Удалить товар?</h2>
+      <p id="deleteItemName" style="font-weight:600; margin-bottom: 1.5rem;"></p>
+
+      <!-- Hidden inputs -->
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="pk" id="deleteItemPk" value="">
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" id="cancelDeleteBtn">Отмена</button>
+        <button type="submit" class="btn btn-primary">Удалить</button>
+      </div>
+    </form>
   </div>
 </div>
+
+
 
 <script>
 
@@ -775,29 +786,46 @@
   });
 
   // Handle edit buttons
-  document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const tr = e.target.closest('tr');
-      editingRow = tr;
-      itemModalTitle.textContent = 'Редактировать товар';
-      // Fill form with current values
-      itemForm.name.value = tr.querySelector('td[data-label="Название"]').textContent;
-      itemForm.category.value = tr.querySelector('td[data-label="Категория"]').textContent;
+document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const pk = btn.getAttribute('data-id'); // get the item's PK
+    const tr = btn.closest('tr');
+    editingRow = tr;
 
-      itemForm.price.value = parseFloat(tr.querySelector('td[data-label="Цена за единицу (USZ)"]').textContent.replace(/[^0-9.]/g, ''));
-      openModal(itemModal);
-    });
-  });
+    itemModalTitle.textContent = 'Редактировать товар';
 
-  // Handle delete buttons
-  document.querySelectorAll('#inventoryTable .btn.delete').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const tr = e.target.closest('tr');
-      editingRow = tr;
-      deleteItemName.textContent = `Вы уверены, что хотите удалить товар "${tr.querySelector('td[data-label="Название"]').textContent}"?`;
-      openModal(deleteModal);
-    });
+    // Fill form with current values using unique IDs
+    itemForm.name.value = document.getElementById(`name-${pk}`).textContent;
+    itemForm.category.value = document.getElementById(`category-${pk}`).textContent;
+
+    itemForm.price.value = parseFloat(
+      document.getElementById(`price-${pk}`).textContent.replace(/[^0-9.]/g, '')
+    );
+    openModal(itemModal);
   });
+});
+
+
+document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const pk = btn.getAttribute('data-id');
+    const tr = btn.closest('tr');
+
+    itemModalTitle.textContent = 'Редактировать товар';
+    document.getElementById('action').value = 'edit';
+    document.getElementById('itemPk').value = pk;
+
+    // Fill form fields
+    itemForm.name.value = document.getElementById(`name-${pk}`).textContent;
+    itemForm.category.value = document.getElementById(`category-${pk}`).textContent;
+    itemForm.quantity.value = document.getElementById(`stock-${pk}`).textContent;
+    itemForm.price.value = parseFloat(
+      document.getElementById(`price-${pk}`).textContent.replace(/[^0-9.]/g, '')
+    );
+
+    openModal(itemModal);
+  });
+});
 
 
 
