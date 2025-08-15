@@ -93,3 +93,24 @@ class Warehouse(models.Model):
         return self.name
 
 
+class Invoice(models.Model):
+    TYPE = [
+        ("Приход", "plus"),
+        ("Расход", "minus"),
+
+    ]
+    type_invoice= models.CharField(max_length=20, choices=TYPE)
+    warehouse=models.ForeignKey(Warehouse, on_delete=models.SET_NULL,null=True)
+    quantity = models.IntegerField(default=0)
+    created_at = models.DateField(auto_now_add=True)
+    where=models.CharField(max_length=100)
+    to = models.CharField(max_length=100)
+    comment=models.CharField(max_length=200,null=True,blank=True)
+
+
+
+
+
+    def __str__(self):
+        return self.warehouse.name
+

@@ -1,8 +1,11 @@
 from django.contrib import admin
-from .models import Profile,Staff,Student,Warehouse
+from .models import Profile,Staff,Student,Warehouse,Invoice
 from django.utils.html import format_html
 # Register your models here.
 
+@admin.register(Invoice)
+class Invoice(admin.ModelAdmin):
+    list_display = ['warehouse']
 @admin.register(Warehouse)
 class Warehouse(admin.ModelAdmin):
     list_display = ['name']

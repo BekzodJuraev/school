@@ -21,7 +21,7 @@ from django.db.models import Sum,Q
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
-from .models import Profile,Staff,SchoolClass,Student,Warehouse
+from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice
 
 class Dashboard(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
@@ -76,6 +76,7 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
       name = request.POST.get('name')
       price = request.POST.get('price')
       category = request.POST.get('category')
+      print(action)
 
       if action == 'add':
 
@@ -86,17 +87,47 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
 
       elif action == 'edit':
          Warehouse.objects.filter(pk=pk).update(name=name,categories=category,price=price)
+
+      elif action == 'add_invoice':
+         warehouse=request.POST.get('warehouse')
+         quantity=request.POST.get('quantity')
+         type_invoice=request.POST.get('type_invoice')
+         where = 'Склад' if type_invoice == 'Расход' else ''
+         to=request.POST.get('to')
+         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, type_invoice=type_invoice,where=where,to=to)
+         if type_invoice == 'Расход':
+            Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
+         else:
+            Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') + quantity)
+
+
+
+
+
+
+
+
+
+
       return redirect(request.path)
 
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
+
+      context['invoice'] = Invoice.objects.annotate(
+         total=ExpressionWrapper(
+            F('quantity') * F('warehouse__price'),
+            output_field=DecimalField(max_digits=12, decimal_places=2)
+         )
+      ).order_by('-id')
+
       context['warehouse']=Warehouse.objects.annotate(
     total=ExpressionWrapper(
         F('quantity') * F('price'),
         output_field=DecimalField(max_digits=12, decimal_places=2)
     )
-)
+).order_by('-id')
       return context
 
 

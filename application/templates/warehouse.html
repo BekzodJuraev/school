@@ -586,7 +586,7 @@
   <td id="category-{{item.pk}}">{{item.categories}}</td>
   <td id="stock-{{item.pk}}">{{item.quantity}}</td>
   <td id="price-{{item.pk}}">{{item.price}}</td>
-  <td id="total-{{item.pk}}">{{item.total}}</td>
+  <td id="total-{{item.pk}}">{{ item.total|floatformat:2 }}</td>
   <td>
     <button class="btn edit" data-id="{{item.pk}}">✏️</button>
     <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
@@ -603,42 +603,31 @@
     <table aria-label="Накладные" id="invoicesTable">
       <thead>
         <tr>
-          <th scope="col">№ накладной</th>
+          <th scope="col">Товар</th>
           <th scope="col">Дата</th>
           <th scope="col">Тип</th>
           <th scope="col">Кол-во позиций</th>
-          <th scope="col">Общая сумма, ₽</th>
-          <th scope="col">Статус</th>
+          <th scope="col">Общая сумма,(USZ) </th>
           <th scope="col">Действия</th>
         </tr>
       </thead>
       <tbody>
-        <tr data-id="101">
-          <td data-label="№ накладной">00123</td>
-          <td data-label="Дата">2025-07-25</td>
-          <td data-label="Тип">Приход</td>
-          <td data-label="Кол-во позиций">5</td>
-          <td data-label="Общая сумма, ₽">15200</td>
-          <td data-label="Статус">Завершена</td>
+       {% for item in invoice %}
+        <tr data-id="{{item.pk}}">
+          <td data-label="№ накладной">{{item.warehouse.name}}</td>
+          <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
+          <td data-label="Тип">{{item.type_invoice}}</td>
+          <td data-label="Кол-во позиций">{{item.quantity}}</td>
+          <td data-label="Общая сумма, ₽">{{item.total}}</td>
           <td data-label="Действия">
             <button class="btn edit" aria-label="Просмотр накладной 00123">👁️</button>
-            <button class="btn delete" aria-label="Удалить накладную 00123">🗑️</button>
+           <!-- <button class="btn delete" aria-label="Удалить накладную 00123">🗑️</button> -->
           </td>
         </tr>
-        <tr data-id="102">
-          <td data-label="№ накладной">00124</td>
-          <td data-label="Дата">2025-07-28</td>
-          <td data-label="Тип">Расход</td>
-          <td data-label="Кол-во позиций">3</td>
-          <td data-label="Общая сумма, ₽">8900</td>
-          <td data-label="Статус">В обработке</td>
-          <td data-label="Действия">
-            <button class="btn edit" aria-label="Просмотр накладной 00124">👁️</button>
-            <button class="btn delete" aria-label="Удалить накладную 00124">🗑️</button>
-          </td>
-        </tr>
+      {% endfor %}
       </tbody>
     </table>
+     <button class="btn-add-floating" aria-label="Добавить товар" id="addInvoiceBtn">＋</button>
   </section>
 
   <!-- History tab -->
@@ -719,6 +708,55 @@
       <div class="modal-actions">
         <button type="button" class="btn btn-cancel" id="cancelDeleteBtn">Отмена</button>
         <button type="submit" class="btn btn-primary">Удалить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="invoiceModal" role="dialog" aria-modal="true" aria-labelledby="invoiceModalTitle" tabindex="-1">
+  <div class="modal-content">
+    <h2 id="invoiceModalTitle">Добавить накладную</h2>
+    <form id="invoiceForm" method="POST">
+      {% csrf_token %}
+
+      <label for="invoiceProduct">Товар</label>
+      <select id="invoiceProduct" name="warehouse" required>
+        <option value="">Выберите товар</option>
+        {% for product in warehouse %}
+          <option value="{{ product.pk }}">{{ product.name }}</option>
+        {% endfor %}
+      </select>
+
+      <input type="hidden" id="invoicePk" name="pk" value="">
+      <input type="hidden" id="invoiceAction" name="action" value="add_invoice">
+
+      <label for="invoiceType">Тип</label>
+      <select id="invoiceType" name="type_invoice" required>
+        <option value="">Выберите тип</option>
+        <option value="Приход">Приход</option>
+        <option value="Расход">Расход</option>
+      </select>
+
+      <label for="invoicePositions">Кол-во позиций</label>
+      <input type="number" id="invoicePositions" name="quantity" min="1" step="1" required />
+
+      <!-- Extra fields for "Расход" -->
+      <div id="expenseFields" style="display:none;">
+        <label for="invoiceDestination">Куда</label>
+        <select id="invoiceDestination" name="to">
+          <option value="">Выберите получателя</option>
+          <option value="Кухня">Кухня</option>
+          <option value="Другое">Другое</option>
+
+        </select>
+
+        <label for="invoiceNote">Примечание</label>
+        <input type="text" id="invoiceNote" name="note" />
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" id="cancelInvoiceBtn">Отмена</button>
+        <button type="submit" class="btn btn-primary" id="saveInvoiceBtn">Сохранить</button>
       </div>
     </form>
   </div>
@@ -818,7 +856,7 @@ document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
     // Fill form fields
     itemForm.name.value = document.getElementById(`name-${pk}`).textContent;
     itemForm.category.value = document.getElementById(`category-${pk}`).textContent;
-    itemForm.quantity.value = document.getElementById(`stock-${pk}`).textContent;
+
     itemForm.price.value = parseFloat(
       document.getElementById(`price-${pk}`).textContent.replace(/[^0-9.]/g, '')
     );
@@ -873,6 +911,63 @@ document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
   document.querySelectorAll('#inventoryTable .btn.delete').forEach(btn => {
     btn.addEventListener('click', onDeleteClick);
   });
+
+</script>
+
+<script>
+const invoiceModal = document.getElementById('invoiceModal');
+const cancelInvoiceBtn = document.getElementById('cancelInvoiceBtn');
+const invoiceTypeSelect = document.getElementById('invoiceType');
+const expenseFields = document.getElementById('expenseFields');
+
+// Cancel button closes modal
+cancelInvoiceBtn.addEventListener('click', () => {
+  closeModal(invoiceModal);
+});
+
+// Show/hide "Расход" extra fields
+invoiceTypeSelect.addEventListener('change', () => {
+  if (invoiceTypeSelect.value === 'Расход') {
+    expenseFields.style.display = 'block';
+  } else {
+    expenseFields.style.display = 'none';
+  }
+});
+
+// Add Invoice button (open modal for add)
+document.getElementById('addInvoiceBtn').addEventListener('click', () => {
+  document.getElementById('invoiceModalTitle').textContent = 'Добавить накладную';
+  document.getElementById('invoiceAction').value = 'add_invoice';
+  document.getElementById('invoicePk').value = '';
+  invoiceForm.reset();
+  expenseFields.style.display = 'none';
+  openModal(invoiceModal);
+});
+
+// Edit Invoice button (fill form with data)
+document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tr = btn.closest('tr');
+    const pk = tr.dataset.id;
+
+    document.getElementById('invoiceModalTitle').textContent = 'Редактировать накладную';
+    document.getElementById('invoiceAction').value = 'edit_invoice';
+    document.getElementById('invoicePk').value = pk;
+
+    document.getElementById('invoiceProduct').value = tr.querySelector('td[data-label="№ накладной"]').textContent;
+    document.getElementById('invoiceType').value = tr.querySelector('td[data-label="Тип"]').textContent;
+    document.getElementById('invoicePositions').value = tr.querySelector('td[data-label="Кол-во позиций"]').textContent;
+
+    // Show expense fields if type is "Расход"
+    if (document.getElementById('invoiceType').value === 'Расход') {
+      expenseFields.style.display = 'block';
+    } else {
+      expenseFields.style.display = 'none';
+    }
+
+    openModal(invoiceModal);
+  });
+});
 
 </script>
 </body>
