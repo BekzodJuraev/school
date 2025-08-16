@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render,redirect
 from django.urls import reverse_lazy
 from django.db.models import F, DecimalField, ExpressionWrapper
+from django.views.decorators.http import require_GET
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import json
@@ -76,7 +77,7 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
       name = request.POST.get('name')
       price = request.POST.get('price')
       category = request.POST.get('category')
-      print(action)
+
 
       if action == 'add':
 
@@ -93,8 +94,9 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
          quantity=request.POST.get('quantity')
          type_invoice=request.POST.get('type_invoice')
          where = 'Склад' if type_invoice == 'Расход' else ''
-         to=request.POST.get('to')
-         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, type_invoice=type_invoice,where=where,to=to)
+         to='Склад' if type_invoice == 'Приход' else  request.POST.get('to')
+         note=request.POST.get('note')
+         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, type_invoice=type_invoice,where=where,to=to,comment=note)
          if type_invoice == 'Расход':
             Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
          else:
@@ -120,7 +122,7 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
             F('quantity') * F('warehouse__price'),
             output_field=DecimalField(max_digits=12, decimal_places=2)
          )
-      ).order_by('-id')
+      ).select_related('warehouse').order_by('-id')
 
       context['warehouse']=Warehouse.objects.annotate(
     total=ExpressionWrapper(
@@ -364,7 +366,6 @@ class ApproveView(LoginRequiredMixin,TemplateView):
       context = super().get_context_data(**kwargs)
       context['profile']=Profile.objects.all()
       return  context
-
 
 
 # @csrf_exempt

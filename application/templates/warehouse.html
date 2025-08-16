@@ -525,6 +525,15 @@
       display: block;
     }
   }
+  .modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -581,8 +590,8 @@
     </thead>
     <tbody>
     {% for item in warehouse %}
-     <tr data-id="{{item.pk}}">
-  <td id="name-{{item.pk}}">{{item.name}}</td>
+    <tr data-id="{{item.pk}}">
+  <td data-label="Название" id="name-{{item.pk}}">{{item.name}}</td>
   <td id="category-{{item.pk}}">{{item.categories}}</td>
   <td id="stock-{{item.pk}}">{{item.quantity}}</td>
   <td id="price-{{item.pk}}">{{item.price}}</td>
@@ -640,19 +649,21 @@
           <th scope="col">Откуда</th>
           <th scope="col">Куда</th>
           <th scope="col">Кол-во</th>
-          <th scope="col">Комментарий</th>
+          <th scope="col">Примечание</th>
         </tr>
       </thead>
       <tbody>
+        {% for item in invoice %}
         <tr>
-          <td data-label="Дата">2025-08-02</td>
-          <td data-label="Товар">Моющее средство</td>
-          <td data-label="Откуда">Склад</td>
-          <td data-label="Куда">Уборочная служба</td>
-          <td data-label="Кол-во">10</td>
-          <td data-label="Комментарий">Регулярное использование</td>
+          <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
+          <td data-label="Товар">{{item.warehouse.name}}</td>
+          <td data-label="Откуда">{{item.where}}</td>
+          <td data-label="Куда">{{item.to}}</td>
+          <td data-label="Кол-во">{{item.quantity}}</td>
+          <td data-label="Комментарий">{{item.comment|default:""}}</td>
         </tr>
-        <!-- Add more rows as needed -->
+      {% endfor %}
+
       </tbody>
     </table>
   </section>
@@ -715,6 +726,7 @@
 
 <div class="modal" id="invoiceModal" role="dialog" aria-modal="true" aria-labelledby="invoiceModalTitle" tabindex="-1">
   <div class="modal-content">
+     <button type="button" class="modal-close" id="cancelInvoiceBtn">×</button>
     <h2 id="invoiceModalTitle">Добавить накладную</h2>
     <form id="invoiceForm" method="POST">
       {% csrf_token %}
@@ -723,7 +735,7 @@
       <select id="invoiceProduct" name="warehouse" required>
         <option value="">Выберите товар</option>
         {% for product in warehouse %}
-          <option value="{{ product.pk }}">{{ product.name }}</option>
+          <option value="{{ product.pk }}" data-name="{{ product.name }}" data-quantity="{{ product.quantity }}">{{ product.name }}</option>
         {% endfor %}
       </select>
 
@@ -754,8 +766,7 @@
         <input type="text" id="invoiceNote" name="note" />
       </div>
 
-      <div class="modal-actions">
-        <button type="button" class="btn btn-cancel" id="cancelInvoiceBtn">Отмена</button>
+      <div class="modal-actions" id="modal-actions_invoice">
         <button type="submit" class="btn btn-primary" id="saveInvoiceBtn">Сохранить</button>
       </div>
     </form>
@@ -869,13 +880,7 @@ document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
 
 
   // Confirm delete
-  confirmDeleteBtn.addEventListener('click', () => {
-    if (editingRow) {
-      editingRow.remove();
-      editingRow = null;
-    }
-    closeModal(deleteModal);
-  });
+
 
   // Helpers to open/close modals
   function openModal(modal) {
@@ -897,12 +902,16 @@ document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
     itemForm.price.value = parseFloat(tr.querySelector('td[data-label="Цена за единицу (USZ)"]').textContent.replace(/[^0-9.]/g, ''));
     openModal(itemModal);
   }
-  function onDeleteClick(e) {
-    const tr = e.target.closest('tr');
-    editingRow = tr;
-    deleteItemName.textContent = `Вы уверены, что хотите удалить товар "${tr.querySelector('td[data-label="Название"]').textContent}"?`;
-    openModal(deleteModal);
-  }
+function onDeleteClick(e) {
+  const tr = e.target.closest('tr');
+  editingRow = tr;
+  const pk = tr.getAttribute('data-id'); // <-- take from <tr> or button
+  document.getElementById('deleteItemPk').value = pk;
+
+  deleteItemName.textContent = `Вы уверены, что хотите удалить товар "${tr.querySelector('td[data-label="Название"]').textContent}"?`;
+
+  openModal(deleteModal);
+}
 
   // Attach dynamic listeners for initial buttons
   document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
@@ -919,6 +928,7 @@ const invoiceModal = document.getElementById('invoiceModal');
 const cancelInvoiceBtn = document.getElementById('cancelInvoiceBtn');
 const invoiceTypeSelect = document.getElementById('invoiceType');
 const expenseFields = document.getElementById('expenseFields');
+const modalActions = document.getElementById('modal-actions_invoice'); // ✅
 
 // Cancel button closes modal
 cancelInvoiceBtn.addEventListener('click', () => {
@@ -939,8 +949,23 @@ document.getElementById('addInvoiceBtn').addEventListener('click', () => {
   document.getElementById('invoiceModalTitle').textContent = 'Добавить накладную';
   document.getElementById('invoiceAction').value = 'add_invoice';
   document.getElementById('invoicePk').value = '';
+
+  // Сброс формы
   invoiceForm.reset();
+
+  // Дополнительно явно очищаем (чтобы не остались из edit)
+  document.getElementById('invoiceProduct').selectedIndex = -1;
+  document.getElementById('invoiceType').value = '';
+  document.getElementById('invoicePositions').value = '';
+
   expenseFields.style.display = 'none';
+  modalActions.style.display = 'flex';
+
+  // Ре-энейблим
+  document.getElementById('invoiceProduct').disabled = false;
+  document.getElementById('invoiceType').disabled = false;
+  document.getElementById('invoicePositions').disabled = false;
+
   openModal(invoiceModal);
 });
 
@@ -950,11 +975,18 @@ document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
     const tr = btn.closest('tr');
     const pk = tr.dataset.id;
 
-    document.getElementById('invoiceModalTitle').textContent = 'Редактировать накладную';
+    document.getElementById('invoiceModalTitle').textContent = 'Просмотр накладной';
     document.getElementById('invoiceAction').value = 'edit_invoice';
     document.getElementById('invoicePk').value = pk;
+    let name = tr.querySelector('td[data-label="№ накладной"]').textContent.trim();
+    let select = document.getElementById('invoiceProduct');
 
-    document.getElementById('invoiceProduct').value = tr.querySelector('td[data-label="№ накладной"]').textContent;
+    for (let option of select.options) {
+      if (option.dataset.name === name) {
+        option.selected = true;
+        break;
+      }
+    }
     document.getElementById('invoiceType').value = tr.querySelector('td[data-label="Тип"]').textContent;
     document.getElementById('invoicePositions').value = tr.querySelector('td[data-label="Кол-во позиций"]').textContent;
 
@@ -964,11 +996,40 @@ document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
     } else {
       expenseFields.style.display = 'none';
     }
+    document.getElementById('invoiceProduct').disabled = true;
+    document.getElementById('invoiceType').disabled = true;
+    document.getElementById('invoicePositions').disabled = true;
+
+    // Скрываем кнопки действий (сохранить/отмена)
+    modalActions.style.display = 'none';
+    document.getElementById('cancelInvoiceBtn').style.display = 'block';
 
     openModal(invoiceModal);
   });
 });
 
+</script>
+
+<script>
+document.getElementById("invoiceForm").addEventListener("submit", function(e) {
+    const type = document.getElementById("invoiceType").value; // Приход / Расход
+    const productSelect = document.getElementById("invoiceProduct");
+    const quantityInput = document.getElementById("invoicePositions");
+    const quantity = parseInt(quantityInput.value || 0);
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
+
+    // Only check stock if type is "Расход"
+    if (type === "Расход") {
+        const availableStock = parseInt(selectedOption.dataset.quantity || 0);
+
+        if (quantity > availableStock) {
+            e.preventDefault(); // prevent form submit
+            alert(`Недостаточно товара на складе!\nТовар: ${selectedOption.dataset.name}\nДоступно: ${availableStock}`);
+            return false;
+        }
+    }
+    // Приход → no check, allow submit
+});
 </script>
 </body>
 </html>
