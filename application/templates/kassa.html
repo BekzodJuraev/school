@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ШколаCRM — Учёт склада</title>
+<style>
+  /* === Your base styles === */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f6fa;
+    color: #222;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background-color: #1e1e2f;
+    width: 240px;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    box-shadow: inset 2px 0 8px #00000055;
+    transition: width 0.3s ease;
+    user-select: none;
+    position: relative;
+  }
+  .sidebar.collapsed {
+    width: 70px;
+  }
+  .sidebar h2 {
+    font-size: 24px;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: white;
+    user-select: text;
+  }
+  .menu {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .menu-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #2a2a40;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 0 8px #00000044;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    user-select: none;
+  }
+  .menu-link:hover {
+    background-color: #3b3b5a;
+    color: #ffcc00;
+  }
+  .menu-link.active {
+    background-color: #4e73df;
+    color: white;
+    box-shadow: 0 0 15px #4e73dfaa;
+  }
+  .sidebar.collapsed .menu-link span.text {
+    display: none;
+  }
+  .menu-link .icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .sidebar-toggle {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4e73df;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    color: white;
+    box-shadow: 0 0 10px #4e73dfaa;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .sidebar-toggle:hover {
+    background-color: #3563c6;
+    box-shadow: 0 0 20px #5a8bffcc;
+  }
+
+  /* Main wrapper */
+  .main-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    padding: 2.5rem 3rem;
+    color: #222;
+    position: relative;
+  }
+
+  /* Top bar */
+  header.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+  }
+  header.top-bar h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #4e73df;
+  }
+  .user-info {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #666;
+    user-select: none;
+  }
+
+  /* Summary cards grid */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  .summary-card {
+    background-color: #4e73df;
+    border-radius: 16px;
+    padding: 2rem;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 15px #4e73df88;
+    cursor: default;
+    user-select: none;
+    transition: box-shadow 0.3s ease;
+  }
+  .summary-card:hover {
+    box-shadow: 0 8px 30px #4e73dfcc;
+  }
+  .summary-title {
+    font-weight: 700;
+    font-size: 1.4rem;
+    margin-bottom: 0.8rem;
+  }
+  .summary-value {
+    font-weight: 900;
+    font-size: 3.5rem;
+    letter-spacing: 0.06em;
+  }
+  .summary-unit {
+    font-weight: 700;
+    font-size: 1.6rem;
+    margin-left: 0.3rem;
+  }
+
+  /* Tabs nav */
+  .tabs {
+    display: flex;
+    border-bottom: 3px solid #4e73df;
+    margin-bottom: 2rem;
+  }
+  .tabs button {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 1.2rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 4px solid transparent;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    user-select: none;
+  }
+  .tabs button.active,
+  .tabs button:hover:not(:disabled) {
+    color: #4e73df;
+    border-bottom-color: #4e73df;
+  }
+  .tabs button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* Tab content */
+  .tab-content {
+    display: none;
+    animation: fadeIn 0.35s ease forwards;
+  }
+  .tab-content.active {
+    display: block;
+  }
+  @keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 16px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  thead tr th {
+    background: #4e73df;
+    color: white;
+    padding: 1rem 1.8rem;
+    font-weight: 700;
+    text-align: left;
+    user-select: none;
+  }
+  tbody tr {
+    background: #f9f9f9;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+  }
+  tbody tr:hover {
+    background: #e2eaff;
+  }
+  tbody tr td {
+    padding: 1rem 1.5rem;
+    vertical-align: middle;
+    color: #333;
+  }
+  tbody tr td img {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .btn.edit {
+    background-color: #36b9cc;
+    color: white;
+    margin-right: 0.5rem;
+    box-shadow: 0 0 8px #36b9ccaa;
+  }
+  .btn.edit:hover {
+    background-color: #2a9db0;
+    box-shadow: 0 0 15px #2a9db0cc;
+  }
+  .btn.delete {
+    background-color: #e74a3b;
+    color: white;
+    box-shadow: 0 0 8px #e74a3bcc;
+  }
+  .btn.delete:hover {
+    background-color: #c0392b;
+    box-shadow: 0 0 15px #c0392bcc;
+  }
+
+  /* Floating add button */
+  .btn-add-floating {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    background-color: #4e73df;
+    border: none;
+    color: white;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 32px;
+    font-weight: 700;
+    box-shadow: 0 0 20px #4e73dfcc;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-add-floating:hover {
+    background-color: #3563c6;
+    box-shadow: 0 0 30px #5a8bffcc;
+  }
+
+  /* Notifications form */
+  form.notifications-form {
+    max-width: 600px;
+    background: white;
+    padding: 2rem 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 0 20px #4e73df44;
+    user-select: none;
+  }
+  form.notifications-form h3 {
+    font-weight: 700;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #4e73df;
+  }
+  form.notifications-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    color: #555;
+  }
+  form.notifications-form input[type=number] {
+    width: 100%;
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    border: 1px solid #ccc;
+    font-weight: 600;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    color: #333;
+    box-shadow: inset 0 0 8px #4e73df44;
+    transition: box-shadow 0.3s ease;
+  }
+  form.notifications-form input[type=number]:focus {
+    outline: none;
+    box-shadow: inset 0 0 12px #4e73dfcc;
+  }
+  form.notifications-form button {
+    margin-top: 1.8rem;
+    width: 100%;
+    background: #4e73df;
+    border: none;
+    padding: 1.2rem 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: white;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 0 25px #4e73dfcc;
+    transition: background-color 0.3s ease;
+  }
+  form.notifications-form button:hover {
+    background-color: #3563c6;
+  }
+
+  /* Modal overlay */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+  }
+  .modal.active {
+    display: flex;
+  }
+  .modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    max-width: 500px;
+    width: 90vw;
+    box-shadow: 0 0 25px #4e73dfaa;
+    position: relative;
+    user-select: text;
+  }
+  .modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #4e73df;
+    font-weight: 700;
+  }
+  .modal-content label {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    color: #444;
+  }
+  .modal-content input[type=text],
+  .modal-content input[type=number],
+  .modal-content select {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.2rem;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    color: #222;
+    box-shadow: inset 0 0 8px #4e73df44;
+    transition: box-shadow 0.3s ease;
+  }
+  .modal-content input[type=text]:focus,
+  .modal-content input[type=number]:focus,
+  .modal-content select:focus {
+    outline: none;
+    box-shadow: inset 0 0 12px #4e73dfcc;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  .modal-actions button {
+    padding: 0.6rem 1.6rem;
+    font-weight: 700;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .modal-actions .btn-cancel {
+    background: #ddd;
+    color: #555;
+  }
+  .modal-actions .btn-cancel:hover {
+    background: #ccc;
+  }
+  .modal-actions .btn-primary {
+    background: #4e73df;
+    color: white;
+    box-shadow: 0 0 15px #4e73dfaa;
+  }
+  .modal-actions .btn-primary:hover {
+    background: #3563c6;
+  }
+  /* Responsive */
+  @media (max-width: 900px) {
+    .summary-grid {
+      grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
+    }
+  }
+  @media (max-width: 700px) {
+    body {
+      flex-direction: column;
+    }
+    .sidebar {
+      width: 100%;
+      height: 60px;
+      padding: 0 1rem;
+      flex-direction: row;
+      align-items: center;
+      box-shadow: inset 0 -2px 10px #00000022;
+    }
+    .sidebar.collapsed {
+      width: 100%;
+    }
+    .sidebar h2 {
+      display: none;
+    }
+    .menu {
+      flex-direction: row;
+      gap: 0.5rem;
+      width: 100%;
+      justify-content: space-around;
+    }
+    .menu-link {
+      flex: 1;
+      justify-content: center;
+      padding: 0.6rem 0;
+      font-size: 0.9rem;
+      border-radius: 12px 12px 0 0;
+    }
+    .sidebar-toggle {
+      display: none;
+    }
+    header.top-bar {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .main-wrapper {
+      padding: 1rem 1.5rem;
+    }
+    table, thead, tbody, th, td, tr {
+      display: block;
+      width: 100%;
+    }
+    thead tr th {
+      display: none;
+    }
+    tbody tr {
+      margin-bottom: 1.5rem;
+      border-radius: 12px;
+      background: #f9f9f9;
+      padding: 1rem;
+    }
+    tbody tr td {
+      padding-left: 50%;
+      position: relative;
+      text-align: right;
+    }
+    tbody tr td::before {
+      content: attr(data-label);
+      position: absolute;
+      left: 1rem;
+      width: 45%;
+      font-weight: 700;
+      color: #555;
+      text-align: left;
+    }
+    tbody tr td img {
+      margin: 0 0 0 auto;
+      display: block;
+    }
+  }
+  .modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar" aria-label="Навигация по сайту">
+  <h2>🏫 ШколаCRM</h2>
+  <nav class="menu" aria-label="Главное меню">
+  <a href="{% url 'dashboard' %}" class="menu-link" > 🏠 Панель</a>
+       {% if request.user.profile.position == 'admin' %}
+      <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+      {% endif %}
+      <a href="{% url 'kassa' %}" class="menu-link  active ">📊 Касса</a>
+         <a href="{% url 'warehouse' %}" class="menu-link">📁 Склад</a>
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+  </nav>
+  <button class="sidebar-toggle" aria-label="Свернуть меню" id="sidebarToggle">⇤</button>
+</aside>
+
+<!-- Main content -->
+<div class="main-wrapper" role="main">
+  <header class="top-bar">
+    <h1>Касса и оплата</h1>
+    <div class="user-info" aria-label="Пользователь: Иван Иванов">
+      {{request.user.profile.lastname}} {{request.user.profile.name}}
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs" role="tablist" aria-label="Переключение между разделами">
+    <button role="tab" aria-selected="true" aria-controls="payments-tab" id="tabPayments" class="active">Платежи</button>
+    <button role="tab" aria-selected="false" aria-controls="receipts-tab" id="tabReceipts">Квитанции</button>
+    <button role="tab" aria-selected="false" aria-controls="debts-tab" id="tabDebts">Задолженности</button>
+  </nav>
+
+  <!-- Payments tab -->
+  <section id="payments-tab" class="tab-content active" role="tabpanel" aria-labelledby="tabPayments" tabindex="0">
+    <table aria-label="Учёт оплат" id="paymentsTable">
+      <thead>
+        <tr>
+          <th scope="col">Ученик</th>
+          <th scope="col">Тип оплаты</th>
+          <th scope="col">Сумма (UZS)</th>
+          <th scope="col">Дата</th>
+          <th scope="col">Статус</th>
+          <th scope="col">Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in payments %}
+        <tr data-id="{{payment.pk}}">
+          <td data-label="Ученик">{{payment.student.full_name}}</td>
+          <td data-label="Тип оплаты">{{payment.payment_type}}</td>
+          <td data-label="Сумма">{{payment.amount}}</td>
+          <td data-label="Дата">{{payment.created_at|date:'d.m.Y'}}</td>
+          <td data-label="Статус">
+            {% if payment.is_paid %}
+              ✅ Оплачено
+            {% else %}
+              ❌ Не оплачено
+            {% endif %}
+          </td>
+          <td>
+            <button class="btn edit" data-id="{{payment.pk}}">✏️</button>
+            <button class="btn delete" data-id="{{payment.pk}}">🗑️</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button class="btn-add-floating" aria-label="Добавить оплату" id="addPaymentBtn">＋</button>
+  </section>
+
+  <!-- Services tab -->
+  <section id="services-tab" class="tab-content" role="tabpanel" aria-labelledby="tabServices" tabindex="0">
+    <table aria-label="Оплата дополнительных услуг" id="servicesTable">
+      <thead>
+        <tr>
+          <th scope="col">Ученик</th>
+          <th scope="col">Услуга</th>
+          <th scope="col">Сумма (UZS)</th>
+          <th scope="col">Дата</th>
+          <th scope="col">Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for service in services %}
+        <tr data-id="{{service.pk}}">
+          <td>{{service.student.full_name}}</td>
+          <td>{{service.service_name}}</td>
+          <td>{{service.amount}}</td>
+          <td>{{service.created_at|date:'d.m.Y'}}</td>
+          <td>
+            {% if service.is_paid %} ✅ Оплачено {% else %} ❌ Не оплачено {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button class="btn-add-floating" aria-label="Добавить услугу" id="addServiceBtn">＋</button>
+  </section>
+
+  <!-- Receipts tab -->
+  <section id="receipts-tab" class="tab-content" role="tabpanel" aria-labelledby="tabReceipts" tabindex="0">
+    <table aria-label="Квитанции" id="receiptsTable">
+      <thead>
+        <tr>
+          <th scope="col">Ученик</th>
+          <th scope="col">Сумма</th>
+          <th scope="col">Дата</th>
+          <th scope="col">Квитанция</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for receipt in receipts %}
+        <tr>
+          <td>{{receipt.student.full_name}}</td>
+          <td>{{receipt.amount}}</td>
+          <td>{{receipt.created_at|date:'d.m.Y'}}</td>
+          <td>
+            <a href="{{receipt.file.url}}" target="_blank">📄 Скачать</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Debts tab -->
+  <section id="debts-tab" class="tab-content" role="tabpanel" aria-labelledby="tabDebts" tabindex="0">
+    <table aria-label="Задолженности" id="debtsTable">
+      <thead>
+        <tr>
+          <th scope="col">Ученик</th>
+          <th scope="col">Сумма задолженности</th>
+          <th scope="col">Дата последнего платежа</th>
+          <th scope="col">Уведомление</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for debt in debts %}
+        <tr>
+          <td>{{debt.student.full_name}}</td>
+          <td>{{debt.amount}}</td>
+          <td>{{debt.last_payment|date:'d.m.Y'}}</td>
+          <td>
+            <button class="btn notify" data-id="{{debt.student.pk}}">📲 Отправить СМС</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+
+<!-- Modals -->
+
+
+</body>
+</html>

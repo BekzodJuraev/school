@@ -368,6 +368,12 @@ class ApproveView(LoginRequiredMixin,TemplateView):
       return  context
 
 
+
+
+class Kassa_view(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'kassa.html'
+
 # @csrf_exempt
 # def turnstile_event_view(request):
 #     if request.method == "POST":
