@@ -584,8 +584,6 @@
         <th scope="col">Название</th>
         <th scope="col">Категория</th>
         <th scope="col">Остаток</th>
-        <th scope="col">Цена за единицу (USZ)</th>
-        <th scope="col">Итого,(USZ)</th>
         <th scope="col">Действия</th>
       </tr>
     </thead>
@@ -595,8 +593,7 @@
   <td data-label="Название" id="name-{{item.pk}}">{{item.name}}</td>
   <td id="category-{{item.pk}}">{{item.categories}}</td>
   <td id="stock-{{item.pk}}">{{item.quantity}}</td>
-  <td id="price-{{item.pk}}">{{item.price}}</td>
-  <td id="total-{{item.pk}}">{{ item.total|floatformat:2 }}</td>
+
   <td>
     <button class="btn edit" data-id="{{item.pk}}">✏️</button>
     <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
@@ -617,6 +614,7 @@
           <th scope="col">Дата</th>
           <th scope="col">Тип</th>
           <th scope="col">Кол-во позиций</th>
+          <th scope="col">Цена за ед, (USZ) </th>
           <th scope="col">Общая сумма,(USZ) </th>
           <th scope="col">Действия</th>
         </tr>
@@ -628,7 +626,13 @@
           <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
           <td data-label="Тип">{{item.type_invoice}}</td>
           <td data-label="Кол-во позиций">{{item.quantity}}</td>
-          <td data-label="Общая сумма, ₽">{{item.total}}</td>
+          {% if item.type_invoice == 'Приход' %}
+           <td data-label="Цена">{{item.price}}</td>
+          <td data-label="Общая сумма, ₽">{{item.total|floatformat:2}}</td>
+          {% else %}
+          <td data-label="Цена">-</td>
+          <td data-label="Общая сумма, ₽">-</td>
+          {% endif %}
           <td data-label="Действия">
             <button class="btn edit" aria-label="Просмотр накладной 00123">👁️</button>
            <!-- <button class="btn delete" aria-label="Удалить накладную 00123">🗑️</button> -->
@@ -694,8 +698,7 @@
         <option value="Хозтовары">Хозтовары</option>
       </select>
 
-      <label for="itemPrice">Цена за единицу (USZ)</label>
-      <input type="number" id="itemPrice" name="price" min="0" step="1" required />
+
       <input id="action" name="action"  value="add" hidden>
       <div class="modal-actions">
         <button type="button" class="btn btn-cancel" id="cancelItemBtn">Отмена</button>
@@ -705,7 +708,7 @@
   </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
+
 <div class="modal" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" tabindex="-1">
   <div class="modal-content">
     <form method="POST" >
@@ -752,7 +755,10 @@
 
       <label for="invoicePositions">Кол-во позиций</label>
       <input type="number" id="invoicePositions" name="quantity" min="1" step="1" required />
-
+      <div id="priceField" style="display:none;">
+      <label for="itemPrice">Цена за единицу (USZ)</label>
+      <input type="number" id="itemPrice" name="price" min="0" step="1" required />
+      </div>
       <!-- Extra fields for "Расход" -->
       <div id="expenseFields" style="display:none;">
         <label for="invoiceDestination">Куда</label>
@@ -898,9 +904,6 @@ document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
     editingRow = tr;
     itemModalTitle.textContent = 'Редактировать товар';
     itemForm.name.value = tr.querySelector('td[data-label="Название"]').textContent;
-    itemForm.category.value = tr.querySelector('td[data-label="Категория"]').textContent;
-    itemForm.stock.value = tr.querySelector('td[data-label="Остаток"]').textContent;
-    itemForm.price.value = parseFloat(tr.querySelector('td[data-label="Цена за единицу (USZ)"]').textContent.replace(/[^0-9.]/g, ''));
     openModal(itemModal);
   }
 function onDeleteClick(e) {
@@ -929,6 +932,7 @@ const invoiceModal = document.getElementById('invoiceModal');
 const cancelInvoiceBtn = document.getElementById('cancelInvoiceBtn');
 const invoiceTypeSelect = document.getElementById('invoiceType');
 const expenseFields = document.getElementById('expenseFields');
+const priceFields = document.getElementById('priceField');
 const modalActions = document.getElementById('modal-actions_invoice'); // ✅
 
 // Cancel button closes modal
@@ -940,8 +944,12 @@ cancelInvoiceBtn.addEventListener('click', () => {
 invoiceTypeSelect.addEventListener('change', () => {
   if (invoiceTypeSelect.value === 'Расход') {
     expenseFields.style.display = 'block';
+    priceFields.style.display = 'none';
+    document.getElementById('itemPrice').removeAttribute('required');
   } else {
     expenseFields.style.display = 'none';
+    priceFields.style.display = 'block';
+    document.getElementById('itemPrice').setAttribute('required', 'required');
   }
 });
 
@@ -990,17 +998,20 @@ document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
     }
     document.getElementById('invoiceType').value = tr.querySelector('td[data-label="Тип"]').textContent;
     document.getElementById('invoicePositions').value = tr.querySelector('td[data-label="Кол-во позиций"]').textContent;
+    document.getElementById('itemPrice').value=tr.querySelector('td[data-label="Цена"]').textContent;
 
     // Show expense fields if type is "Расход"
     if (document.getElementById('invoiceType').value === 'Расход') {
       expenseFields.style.display = 'block';
+      priceFields.style.display = 'none';
     } else {
       expenseFields.style.display = 'none';
+      priceFields.style.display = 'block';
     }
     document.getElementById('invoiceProduct').disabled = true;
     document.getElementById('invoiceType').disabled = true;
     document.getElementById('invoicePositions').disabled = true;
-
+    document.getElementById('itemPrice').disabled = true;
     // Скрываем кнопки действий (сохранить/отмена)
     modalActions.style.display = 'none';
     document.getElementById('cancelInvoiceBtn').style.display = 'block';
@@ -1031,6 +1042,7 @@ document.getElementById("invoiceForm").addEventListener("submit", function(e) {
     }
     // Приход → no check, allow submit
 });
+
 </script>
 </body>
 </html>

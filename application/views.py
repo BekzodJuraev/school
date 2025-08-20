@@ -75,19 +75,18 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
       action=request.POST.get('action')
       pk = request.POST.get('pk')
       name = request.POST.get('name')
-      price = request.POST.get('price')
+      price = request.POST.get('price') or 0
       category = request.POST.get('category')
 
 
       if action == 'add':
-
-         Warehouse.objects.get_or_create(name=name,categories=category,price=price)
+         Warehouse.objects.get_or_create(name=name,categories=category)
 
       elif action == 'delete':
          Warehouse.objects.filter(pk=pk).delete()
 
       elif action == 'edit':
-         Warehouse.objects.filter(pk=pk).update(name=name,categories=category,price=price)
+         Warehouse.objects.filter(pk=pk).update(name=name,categories=category)
 
       elif action == 'add_invoice':
          warehouse=request.POST.get('warehouse')
@@ -96,7 +95,7 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
          where = 'Склад' if type_invoice == 'Расход' else ''
          to='Склад' if type_invoice == 'Приход' else  request.POST.get('to')
          note=request.POST.get('note')
-         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, type_invoice=type_invoice,where=where,to=to,comment=note)
+         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity,price=price, type_invoice=type_invoice,where=where,to=to,comment=note)
          if type_invoice == 'Расход':
             Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
          else:
@@ -119,17 +118,12 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
 
       context['invoice'] = Invoice.objects.annotate(
          total=ExpressionWrapper(
-            F('quantity') * F('warehouse__price'),
+            F('quantity') * F('price'),
             output_field=DecimalField(max_digits=12, decimal_places=2)
          )
       ).select_related('warehouse').order_by('-id')
 
-      context['warehouse']=Warehouse.objects.annotate(
-    total=ExpressionWrapper(
-        F('quantity') * F('price'),
-        output_field=DecimalField(max_digits=12, decimal_places=2)
-    )
-).order_by('-id')
+      context['warehouse']=Warehouse.objects.all().order_by('-id')
       return context
 
 

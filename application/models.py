@@ -86,7 +86,7 @@ class Warehouse(models.Model):
     quantity=models.IntegerField(default=0)
     categories=models.CharField(max_length=100)
     name=models.CharField(max_length=200)
-    price=models.DecimalField(max_digits=10, decimal_places=2,default=0)
+
 
 
     def __str__(self):
@@ -103,6 +103,7 @@ class Invoice(models.Model):
     warehouse=models.ForeignKey(Warehouse, on_delete=models.SET_NULL,null=True)
     quantity = models.IntegerField(default=0)
     created_at = models.DateField(auto_now_add=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     where=models.CharField(max_length=100)
     to = models.CharField(max_length=100)
     comment=models.CharField(max_length=200,null=True,blank=True)
@@ -113,4 +114,14 @@ class Invoice(models.Model):
 
     def __str__(self):
         return self.warehouse.name
+
+class Payment(models.Model):
+    TYPE = [
+        ("cash", "Наличные"),
+        ("bank", "Банковские переводы"),
+        ('card','Карта')
+
+    ]
+    student=models.ForeignKey(SchoolClass, on_delete=models.CASCADE)
+    type_of_payment=models.CharField(max_length=20, choices=TYPE)
 
