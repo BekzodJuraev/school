@@ -545,13 +545,18 @@
   <a href="{% url 'dashboard' %}" class="menu-link" > 🏠 Панель</a>
        {% if request.user.profile.position == 'admin' %}
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
-      {% endif %}
        <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
          <a href="{% url 'warehouse' %}" class="menu-link  active ">📁 Склад</a>
       <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
       <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
       <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
       <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+     <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+     {% elif request.user.profile.position == 'supplier' %}
+      <a href="{% url 'warehouse' %}" class="menu-link  active ">📁 Склад</a>
+         <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+      {% endif %}
+
   </nav>
   <button class="sidebar-toggle" aria-label="Свернуть меню" id="sidebarToggle">⇤</button>
 </aside>

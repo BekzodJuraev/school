@@ -8,6 +8,7 @@ class Profile(models.Model):
     POSITION_CHOICES = [
         ("admin", "Админ"),
         ("HR", "Отдел кадров"),
+        ("supplier","Завхоз"),
         ("zavuch", "Завуч"),
 
 
