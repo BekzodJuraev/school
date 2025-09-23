@@ -22,7 +22,8 @@ from django.db.models import Sum,Q
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
-from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice
+from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment
+from django.utils import timezone
 
 class Dashboard(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
@@ -30,9 +31,15 @@ class Dashboard(LoginRequiredMixin,TemplateView):
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
+      current_month = timezone.now().month
+      current_year = timezone.now().year
       context['student'] = Student.objects.filter(archive=False).count()
       context['staff'] = Staff.objects.all().count()
       context['teacher'] = Staff.objects.filter(position='teacher').count()
+      context['sum'] = Payment.objects.filter(
+         created_at__year=current_year,
+         created_at__month=current_month
+      ).aggregate(total=Sum('sum'))['total'] or 0
       return context
 
 

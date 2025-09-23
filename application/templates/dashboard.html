@@ -1,3 +1,4 @@
+{% load humanize %}
 {% if request.user.profile.approve %}
 <!DOCTYPE html>
 <html lang="ru">
@@ -251,7 +252,7 @@
       {% if request.user.profile.position == 'admin' %}
       <div class="card">
         <h3>Доход за месяц</h3>
-        <p>0 сум</p>
+        <p>{{sum|intcomma}} сум</p>
       </div>
       {% endif %}
 

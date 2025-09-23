@@ -1,8 +1,12 @@
 from django.contrib import admin
-from .models import Profile,Staff,Student,Warehouse,Invoice
+from .models import Profile,Staff,Student,Warehouse,Invoice,Payment
 from django.utils.html import format_html
-# Register your models here.
 
+
+
+@admin.register(Payment)
+class Payment(admin.ModelAdmin):
+    list_display = ['student','created_at','sum']
 @admin.register(Invoice)
 class Invoice(admin.ModelAdmin):
     list_display = ['warehouse']
