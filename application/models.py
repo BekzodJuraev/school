@@ -117,19 +117,34 @@ class Invoice(models.Model):
         return self.warehouse.name
 
 class Payment(models.Model):
+    DEBT = "debt"
+    PAYMENT = "payment"
+
+    TRANSACTION_TYPES = [
+        (DEBT, "Начисление"),
+        (PAYMENT, "Оплата"),
+    ]
     TYPE = [
         ("cash", "Наличные"),
         ("bank", "Банковские переводы"),
         ('card','Карта')
 
     ]
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES,null=True)
     student=models.ForeignKey(Student, on_delete=models.CASCADE)
-    type_of_payment=models.CharField(max_length=20, choices=TYPE)
+    type_of_payment=models.CharField(max_length=20, choices=TYPE,null=True,blank=True)
     sum = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateField(auto_now_add=True,null=True)
 
+
     def __str__(self):
         return self.student.name
+
+
+
+
+
+
 
 
 
