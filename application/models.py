@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from phonenumber_field.modelfields import PhoneNumberField
 from django.contrib.auth.models import AbstractUser
 
-
+from datetime import date
 class Profile(models.Model):
     POSITION_CHOICES = [
         ("admin", "Админ"),
@@ -135,6 +135,22 @@ class Payment(models.Model):
     type_of_payment=models.CharField(max_length=20, choices=TYPE,null=True,blank=True)
     sum = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateField(auto_now_add=True,null=True)
+
+
+
+    def save(self, *args, **kwargs):
+        if self.transaction_type == self.DEBT:
+            today = date.today()
+            already_debt = Payment.objects.filter(
+                student=self.student,
+                transaction_type=self.DEBT,
+                created_at__year=today.year,
+                created_at__month=today.month,
+            ).exists()
+            if already_debt:
+                return
+        super().save(*args, **kwargs)
+
 
 
     def __str__(self):

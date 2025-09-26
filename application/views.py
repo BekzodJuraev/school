@@ -40,6 +40,8 @@ class Dashboard(LoginRequiredMixin,TemplateView):
          created_at__year=current_year,
          created_at__month=current_month
       ).aggregate(total=Sum('sum'))['total'] or 0
+
+
       return context
 
 
