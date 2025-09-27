@@ -1,9 +1,10 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ШколаCRM — Учёт склада</title>
+<title>ШколаCRM — Касса</title>
 <style>
   /* === Your base styles === */
   *, *::before, *::after {
@@ -565,11 +566,24 @@
       {{request.user.profile.lastname}} {{request.user.profile.name}}
     </div>
   </header>
+    <section class="summary-grid" aria-label="Общее количество товаров по категориям">
+    <article class="summary-card" tabindex="0" aria-label="Школьные принадлежности: 385 штук">
+      <h2 class="summary-title">Доход за год</h2>
+      <p class="summary-value">{{sum_year|intcomma}}<span class="summary-unit"> сум</span></p>
+    </article>
+    <article class="summary-card" tabindex="0" aria-label="Мебель: 120 штук">
+      <h2 class="summary-title">Доход за месяц</h2>
+      <p class="summary-value">{{sum_month|intcomma}}<span class="summary-unit"> сум</span></p>
+    </article>
+    <article class="summary-card" tabindex="0" aria-label="Оборудование: 45 штук">
+      <h2 class="summary-title">Доход за день</h2>
+      <p class="summary-value">{{sum_day|intcomma}}<span class="summary-unit"> сум</span></p>
+    </article>
+  </section>
 
   <!-- Tabs -->
   <nav class="tabs" role="tablist" aria-label="Переключение между разделами">
     <button role="tab" aria-selected="true" aria-controls="payments-tab" id="tabPayments" class="active">Платежи</button>
-    <button role="tab" aria-selected="false" aria-controls="receipts-tab" id="tabReceipts">Квитанции</button>
     <button role="tab" aria-selected="false" aria-controls="debts-tab" id="tabDebts">Задолженности</button>
   </nav>
 
@@ -587,22 +601,19 @@
         </tr>
       </thead>
       <tbody>
-        {% for payment in payments %}
-        <tr data-id="{{payment.pk}}">
-          <td data-label="Ученик">{{payment.student.full_name}}</td>
-          <td data-label="Тип оплаты">{{payment.payment_type}}</td>
-          <td data-label="Сумма">{{payment.amount}}</td>
-          <td data-label="Дата">{{payment.created_at|date:'d.m.Y'}}</td>
+        {% for item in payment %}
+        <tr data-id="{{item.pk}}">
+          <td data-label="Ученик">{{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}</td>
+          <td data-label="Тип оплаты">{{item.get_type_of_payment_display}}</td>
+          <td data-label="Сумма">{{item.sum}}</td>
+          <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
           <td data-label="Статус">
-            {% if payment.is_paid %}
-              ✅ Оплачено
-            {% else %}
-              ❌ Не оплачено
-            {% endif %}
+               ✅ Оплачено
+
           </td>
           <td>
-            <button class="btn edit" data-id="{{payment.pk}}">✏️</button>
-            <button class="btn delete" data-id="{{payment.pk}}">🗑️</button>
+            <button class="btn edit" data-id="{{item.pk}}">✏️</button>
+            <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
           </td>
         </tr>
         {% endfor %}
@@ -640,33 +651,6 @@
     <button class="btn-add-floating" aria-label="Добавить услугу" id="addServiceBtn">＋</button>
   </section>
 
-  <!-- Receipts tab -->
-  <section id="receipts-tab" class="tab-content" role="tabpanel" aria-labelledby="tabReceipts" tabindex="0">
-    <table aria-label="Квитанции" id="receiptsTable">
-      <thead>
-        <tr>
-          <th scope="col">Ученик</th>
-          <th scope="col">Сумма</th>
-          <th scope="col">Дата</th>
-          <th scope="col">Квитанция</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for receipt in receipts %}
-        <tr>
-          <td>{{receipt.student.full_name}}</td>
-          <td>{{receipt.amount}}</td>
-          <td>{{receipt.created_at|date:'d.m.Y'}}</td>
-          <td>
-            <a href="{{receipt.file.url}}" target="_blank">📄 Скачать</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </section>
-
-  <!-- Debts tab -->
   <section id="debts-tab" class="tab-content" role="tabpanel" aria-labelledby="tabDebts" tabindex="0">
     <table aria-label="Задолженности" id="debtsTable">
       <thead>

@@ -37,9 +37,13 @@ class Dashboard(LoginRequiredMixin,TemplateView):
       context['staff'] = Staff.objects.all().count()
       context['teacher'] = Staff.objects.filter(position='teacher').count()
       context['sum'] = Payment.objects.filter(
+         transaction_type='payment',
          created_at__year=current_year,
          created_at__month=current_month
       ).aggregate(total=Sum('sum'))['total'] or 0
+
+
+
 
 
       return context
@@ -376,6 +380,33 @@ class ApproveView(LoginRequiredMixin,TemplateView):
 class Kassa_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'kassa.html'
+
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      today = now().date()
+      current_month = timezone.now().month
+      current_year = timezone.now().year
+      context['payment']=Payment.objects.filter(transaction_type='payment').select_related('student')
+      context['sum_month'] = Payment.objects.filter(
+         transaction_type='payment',
+         created_at__year=current_year,
+         created_at__month=current_month
+      ).aggregate(total=Sum('sum'))['total'] or 0
+      context['sum_day'] = Payment.objects.filter(
+         transaction_type='payment',
+         created_at=today
+      ).aggregate(total=Sum('sum'))['total'] or 0
+      context['sum_year'] = Payment.objects.filter(
+         transaction_type='payment',
+         created_at__year=current_year,
+      ).aggregate(total=Sum('sum'))['total'] or 0
+
+      return  context
+
+
+
+
 
 # @csrf_exempt
 # def turnstile_event_view(request):
