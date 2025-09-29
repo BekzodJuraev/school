@@ -727,7 +727,7 @@ top-bar {
           <td>{{item.student__lastname}} {{item.student__name}} {{item.student__middle_name}}</td>
           <td>{{item.total|intcomma}}</td>
           <td>{{item.last_payment|date:'d.m.Y'}}</td>
-          <td></td>
+          <td>{{item.student__school_class__name}}</td>
           <td>
            <button class="btn more" data-id="{{item.pk}}">     👁️</button>
           </td>

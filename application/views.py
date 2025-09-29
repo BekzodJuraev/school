@@ -390,7 +390,7 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       current_month = timezone.now().month
       current_year = timezone.now().year
       context['payment']=Payment.objects.filter(transaction_type='payment').select_related('student__school_class')
-      context['debt']=Payment.objects.values('student__id', 'student__name','student__lastname','student__middle_name') \
+      context['debt']=Payment.objects.values('student__id', 'student__name','student__lastname','student__middle_name','student__school_class__name') \
     .annotate(
         total=(
                 Coalesce(Sum('sum', filter=Q(transaction_type='debt')), 0, output_field=models.DecimalField()) -
