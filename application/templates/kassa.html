@@ -535,6 +535,45 @@
   font-size: 22px;
   cursor: pointer;
 }
+top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #4e73df;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.filters input[type="text"],
+.filters input[type="date"] {
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.filters button {
+  padding: 6px 12px;
+  background: white;
+  color: #4e73df;
+  border: 1px solid #4e73df;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.filters button:hover {
+  background: #4e73df;
+  color: white;
+}
+
 </style>
 </head>
 <body>
@@ -562,6 +601,7 @@
 <div class="main-wrapper" role="main">
   <header class="top-bar">
     <h1>Касса и оплата</h1>
+
     <div class="user-info" aria-label="Пользователь: Иван Иванов">
       {{request.user.profile.lastname}} {{request.user.profile.name}}
     </div>
@@ -580,7 +620,21 @@
       <p class="summary-value">{{sum_day|intcomma}}<span class="summary-unit"> сум</span></p>
     </article>
   </section>
+   <div class="filters">
+    <!-- Search -->
+   <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
 
+    <!-- Date filter -->
+    <label>
+      от:
+      <input type="date" id="startDate">
+    </label>
+    <label>
+      до:
+      <input type="date" id="endDate">
+    </label>
+    <button onclick="filterTable()">Фильтр</button>
+  </div>
   <!-- Tabs -->
   <nav class="tabs" role="tablist" aria-label="Переключение между разделами">
     <button role="tab" aria-selected="true" aria-controls="payments-tab" id="tabPayments" class="active">Платежи</button>
@@ -613,8 +667,11 @@
 
           </td>
           <td>
+
+            <button class="btn more" data-id="{{item.pk}}">     👁️</button>
             <button class="btn edit" data-id="{{item.pk}}">✏️</button>
             <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
+
           </td>
         </tr>
         {% endfor %}
@@ -672,7 +729,7 @@
           <td>{{item.last_payment|date:'d.m.Y'}}</td>
           <td></td>
           <td>
-            <button class="btn notify" data-id="{{debt.student.pk}}">📲 Отправить СМС</button>
+           <button class="btn more" data-id="{{item.pk}}">     👁️</button>
           </td>
         </tr>
         {% endfor %}
@@ -709,6 +766,25 @@
       document.getElementById(target).classList.add('active');
     });
   });
+
+      // Поиск
+document.getElementById('searchInput').addEventListener('input', function () {
+  const filter = this.value.toLowerCase();
+
+  // Первая таблица
+  const rows = document.querySelectorAll('#paymentsTable tbody tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(filter) ? '' : 'none';
+  });
+
+  // Вторая таблица
+  const rows2 = document.querySelectorAll('#debtsTable tbody tr');
+  rows2.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(filter) ? '' : 'none';
+  });
+});
 </script>
 </body>
 </html>
