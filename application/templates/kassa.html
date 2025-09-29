@@ -596,19 +596,20 @@
           <th scope="col">Тип оплаты</th>
           <th scope="col">Сумма (UZS)</th>
           <th scope="col">Дата</th>
-          <th scope="col">Статус</th>
+          <th scope="col">Класс</th>
           <th scope="col">Действия</th>
         </tr>
       </thead>
       <tbody>
         {% for item in payment %}
         <tr data-id="{{item.pk}}">
-          <td data-label="Ученик">{{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}</td>
+          <td data-label="Ученик">
+            {{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}</td>
           <td data-label="Тип оплаты">{{item.get_type_of_payment_display}}</td>
           <td data-label="Сумма">{{item.sum}}</td>
           <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
           <td data-label="Статус">
-               ✅ Оплачено
+               {{item.student.school_class.name}}
 
           </td>
           <td>
@@ -658,15 +659,18 @@
           <th scope="col">Ученик</th>
           <th scope="col">Сумма задолженности</th>
           <th scope="col">Дата последнего платежа</th>
-          <th scope="col">Уведомление</th>
+           <th scope="col">Класс</th>
+          <th scope="col">Действия</th>
+
         </tr>
       </thead>
       <tbody>
-        {% for debt in debts %}
+        {% for item in debt %}
         <tr>
-          <td>{{debt.student.full_name}}</td>
-          <td>{{debt.amount}}</td>
-          <td>{{debt.last_payment|date:'d.m.Y'}}</td>
+          <td>{{item.student__lastname}} {{item.student__name}} {{item.student__middle_name}}</td>
+          <td>{{item.total|intcomma}}</td>
+          <td>{{item.last_payment|date:'d.m.Y'}}</td>
+          <td></td>
           <td>
             <button class="btn notify" data-id="{{debt.student.pk}}">📲 Отправить СМС</button>
           </td>
@@ -680,6 +684,31 @@
 
 <!-- Modals -->
 
+<script>
+    const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebarToggle');
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+  });
 
+
+  const tabs = document.querySelectorAll('.tabs button');
+  const tabContents = document.querySelectorAll('.tab-content');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tabContents.forEach(tc => tc.classList.remove('active'));
+
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+
+      const target = tab.getAttribute('aria-controls');
+      document.getElementById(target).classList.add('active');
+    });
+  });
+</script>
 </body>
 </html>

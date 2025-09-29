@@ -4,6 +4,8 @@ from django.views.generic import View,ListView, CreateView, UpdateView, DeleteVi
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render,redirect
 from django.urls import reverse_lazy
+from django.db import models
+from django.db.models.functions import Coalesce
 from django.db.models import F, DecimalField, ExpressionWrapper
 from django.views.decorators.http import require_GET
 from rest_framework.response import Response
@@ -18,7 +20,7 @@ from datetime import datetime, timedelta
 from django.views.decorators.http import require_POST
 from django.utils.timezone import now
 from collections import defaultdict
-from django.db.models import Sum,Q
+from django.db.models import Sum,Q,Count,F,Max,Prefetch
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
@@ -387,7 +389,14 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       today = now().date()
       current_month = timezone.now().month
       current_year = timezone.now().year
-      context['payment']=Payment.objects.filter(transaction_type='payment').select_related('student')
+      context['payment']=Payment.objects.filter(transaction_type='payment').select_related('student__school_class')
+      context['debt']=Payment.objects.values('student__id', 'student__name','student__lastname','student__middle_name') \
+    .annotate(
+        total=(
+                Coalesce(Sum('sum', filter=Q(transaction_type='debt')), 0, output_field=models.DecimalField()) -
+                Coalesce(Sum('sum', filter=Q(transaction_type='payment')), 0, output_field=models.DecimalField())
+        ),last_payment=Max('created_at',filter=Q(transaction_type='payment'))
+    ).filter(total__gt=0)
       context['sum_month'] = Payment.objects.filter(
          transaction_type='payment',
          created_at__year=current_year,
@@ -401,6 +410,8 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
          transaction_type='payment',
          created_at__year=current_year,
       ).aggregate(total=Sum('sum'))['total'] or 0
+
+
 
       return  context
 
