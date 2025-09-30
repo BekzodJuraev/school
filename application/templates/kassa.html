@@ -740,6 +740,51 @@ top-bar {
 
 
 <!-- Modals -->
+<div class="modal" id="itemModal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle" tabindex="-1">
+  <div class="modal-content">
+    <h2 id="itemModalTitle">Добавить товар</h2>
+    <form id="itemForm" method="POST">
+           {% csrf_token %}
+      <label for="itemName">Название товара</label>
+      <input type="text" id="itemName" name="name" required />
+       <input type="hidden" id="itemPk" name="pk" value="">
+
+      <label for="itemCategory">Категория</label>
+      <select id="itemCategory" name="category" required>
+        <option value="">Выберите категорию</option>
+        <option value="Школьные принадлежности">Школьные принадлежности</option>
+        <option value="Мебель">Мебель</option>
+        <option value="Оборудование">Оборудование</option>
+        <option value="Хозтовары">Хозтовары</option>
+      </select>
+
+
+      <input id="action" name="action"  value="add" hidden>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" id="cancelItemBtn">Отмена</button>
+        <button type="submit" class="btn btn-primary" id="saveItemBtn">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+const addItemBtn = document.getElementById('addPaymentBtn');
+  // Open Add Item modal
+  addItemBtn.addEventListener('click', () => {
+    editingRow = null;
+    itemModalTitle.textContent = 'Добавить товар';
+    itemForm.reset();
+    openModal(itemModal);
+  });
+
+  function openModal(modal) {
+    modal.classList.add('active');
+    modal.focus();
+  }
+  function closeModal(modal) {
+    modal.classList.remove('active');
+  }
+</script>
 
 <script>
     const sidebar = document.getElementById('sidebar');
