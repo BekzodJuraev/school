@@ -387,6 +387,7 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
       today = now().date()
+      context['students']=Student.objects.values('id','name','lastname','middle_name','school_class__name')
       current_month = timezone.now().month
       current_year = timezone.now().year
       context['payment']=Payment.objects.filter(transaction_type='payment').select_related('student__school_class')

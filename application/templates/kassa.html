@@ -573,6 +573,32 @@ top-bar {
   background: #4e73df;
   color: white;
 }
+#results {
+  position: absolute;
+  top: 100%;   /* прямо под input */
+  left: 0;
+  right: 0;
+  margin: 2px 0 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
+  display: none;
+  z-index: 999;
+}
+
+#results li {
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#results li:hover {
+  background: #f3f6ff;
+}
 
 </style>
 </head>
@@ -742,21 +768,39 @@ top-bar {
 <!-- Modals -->
 <div class="modal" id="itemModal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle" tabindex="-1">
   <div class="modal-content">
-    <h2 id="itemModalTitle">Добавить товар</h2>
+    <h2 id="itemModalTitle">Оплата</h2>
     <form id="itemForm" method="POST">
            {% csrf_token %}
-      <label for="itemName">Название товара</label>
-      <input type="text" id="itemName" name="name" required />
-       <input type="hidden" id="itemPk" name="pk" value="">
+<div style="position: relative; width: 100%;">
+  <label for="studentInput">Ученик</label>
+  <input
+    type="text"
+    id="studentInput"
+    name="student"
+    class="form-control"
+    placeholder="Введите имя ученика"
+    required
+  />
 
-      <label for="itemCategory">Категория</label>
+  <ul id="results" class="student-results"></ul>
+
+  <!-- скрытые поля для backend -->
+  <input type="hidden" id="studentId" name="student_id">
+  <input type="hidden" id="studentClass" name="student_class">
+</div>
+
+
+      <label for="itemCategory">Тип оплаты</label>
       <select id="itemCategory" name="category" required>
-        <option value="">Выберите категорию</option>
-        <option value="Школьные принадлежности">Школьные принадлежности</option>
-        <option value="Мебель">Мебель</option>
-        <option value="Оборудование">Оборудование</option>
-        <option value="Хозтовары">Хозтовары</option>
+        <option value="cash">Наличные</option>
+        <option value="bank">Карта</option>
+        <option value="card">Банковские переводы</option>
+
       </select>
+   <label for="price">Сумма</label>
+<input id="price" type="number" placeholder="0.00" inputmode="decimal">
+
+
 
 
       <input id="action" name="action"  value="add" hidden>
@@ -768,6 +812,87 @@ top-bar {
   </div>
 </div>
 <script>
+
+const students = [
+{% for item in students %}
+  {id: {{item.id}}, name: "{{item.lastname}} {{item.name}} {{item.middle_name}}", class: "{{item.school_class__name}}"},
+
+{% endfor %}
+];
+
+const input = document.getElementById("studentInput");   // поле ввода
+const results = document.getElementById("results");      // список результатов
+const studentIdField = document.getElementById("studentId"); // скрытый input для id
+const studentClassField = document.getElementById("studentClass"); // скрытый input для класса (если нужно)
+
+// обработчик поиска
+input.addEventListener("input", function() {
+  const query = this.value.toLowerCase().trim();
+  results.innerHTML = "";
+
+  if (query.length === 0) {
+    results.style.display = "none";
+    return;
+  }
+
+  // фильтрация по имени или по классу
+  const filtered = students.filter(s =>
+    s.name.toLowerCase().includes(query) || s.class.toLowerCase().includes(query)
+  );
+
+  // генерация выпадающих пунктов
+  filtered.forEach(s => {
+    const li = document.createElement("li");
+    li.innerHTML = `<strong>${s.name}</strong> <span style="color: gray;">(${s.class})</span>`;
+    li.style.cursor = "pointer";
+
+    li.onclick = () => {
+      input.value = s.name;              // в input только имя
+      studentIdField.value = s.id;       // id в hidden
+      if (studentClassField) {
+        studentClassField.value = s.class; // класс в hidden (если есть)
+      }
+      results.style.display = "none";    // скрываем список
+    };
+
+    results.appendChild(li);
+  });
+
+  results.style.display = filtered.length > 0 ? "block" : "none";
+});
+
+// если кликнули вне input или списка — скрываем результаты
+document.addEventListener("click", function(e) {
+  if (!input.contains(e.target) && !results.contains(e.target)) {
+    results.style.display = "none";
+  }
+});
+</script>
+<script>
+const priceInput = document.getElementById("price");
+
+priceInput.addEventListener("input", function (e) {
+  let value = this.value.replace(/\./g, "").replace(/,/g, ".");
+  // заменяем запятую на точку и убираем точки-разделители
+
+  if (value === "") {
+    this.value = "";
+    return;
+  }
+
+  // разделяем на целую и дробную часть
+  let [intPart, decPart] = value.split(".");
+
+  // добавляем разделители тысяч для целой части
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  // собираем обратно
+  this.value = decPart !== undefined ? intPart + "." + decPart : intPart;
+});
+</script>
+<script>
+
+  const cancelItemBtn = document.getElementById('cancelItemBtn');
 const addItemBtn = document.getElementById('addPaymentBtn');
   // Open Add Item modal
   addItemBtn.addEventListener('click', () => {
@@ -784,6 +909,10 @@ const addItemBtn = document.getElementById('addPaymentBtn');
   function closeModal(modal) {
     modal.classList.remove('active');
   }
+    // Cancel Add/Edit modal
+   cancelItemBtn.addEventListener('click', () => {
+    closeModal(itemModal);
+  });
 </script>
 
 <script>
