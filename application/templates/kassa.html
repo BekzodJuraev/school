@@ -682,24 +682,25 @@ top-bar {
       </thead>
       <tbody>
         {% for item in payment %}
-        <tr data-id="{{item.pk}}">
-          <td data-label="Ученик">
-            {{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}</td>
-          <td data-label="Тип оплаты">{{item.get_type_of_payment_display}}</td>
-          <td data-label="Сумма">{{item.sum}}</td>
-          <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
-          <td data-label="Статус">
-               {{item.student.school_class.name}}
-
-          </td>
-          <td>
-
-            <button class="btn more" data-id="{{item.pk}}">     👁️</button>
-            <button class="btn edit" data-id="{{item.pk}}">✏️</button>
-            <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
-
-          </td>
-        </tr>
+       <tr
+  data-id="{{item.pk}}"
+  data-student="{{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}"
+  data-studentid="{{item.student.id}}"
+  data-studentclass="{{item.student.school_class.name}}"
+  data-type="{{item.type_of_payment}}"
+  data-sum="{{ item.sum|floatformat:0 }}"
+>
+  <td data-label="Ученик">{{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}</td>
+  <td data-label="Тип оплаты">{{item.get_type_of_payment_display}}</td>
+  <td data-label="Сумма">{{item.sum}}</td>
+  <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
+  <td data-label="Статус">{{item.student.school_class.name}}</td>
+  <td>
+    <button class="btn more" data-id="{{item.student.pk}}">👁️</button>
+    <button class="btn edit" data-id="{{item.pk}}">✏️</button>
+    <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
+  </td>
+</tr>
         {% endfor %}
       </tbody>
     </table>
@@ -755,7 +756,7 @@ top-bar {
           <td>{{item.last_payment|date:'d.m.Y'}}</td>
           <td>{{item.student__school_class__name}}</td>
           <td>
-           <button class="btn more" data-id="{{item.pk}}">     👁️</button>
+           <button class="btn more" data-id="{{item.student__id}}">👁️</button>
           </td>
         </tr>
         {% endfor %}
@@ -832,6 +833,131 @@ top-bar {
     </form>
   </div>
 </div>
+<div class="modal" id="moreModal" role="dialog" aria-modal="true" aria-labelledby="moreModalTitle" tabindex="-1">
+  <div class="modal-content">
+    <h2 id="moreModalTitle">Информация об ученике</h2>
+
+    <div class="student-info">
+      <p><strong>Ученик:</strong> <span id="moreStudentName"></span></p>
+      <p><strong>Класс:</strong> <span id="moreStudentClass"></span></p>
+    </div>
+
+    <h3>Платежи</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>Тип оплаты</th>
+          <th>Сумма</th>
+        </tr>
+      </thead>
+      <tbody id="morePayments"></tbody>
+    </table>
+
+    <h3>Начислении</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>Сумма</th>
+        </tr>
+      </thead>
+      <tbody id="moreDebts"></tbody>
+    </table>
+
+    <div class="totals">
+      <p><strong>Итого оплачено:</strong> <span id="moreTotalPayments">0</span></p>
+      <p><strong>Итого начисление:</strong> <span id="moreTotalDebts">0</span></p>
+      <p><strong>Итого долги:</strong> <span id="moreBalance">0</span></p>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-cancel" id="closeMoreBtn">Закрыть</button>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById("itemForm").addEventListener("submit", function (e) {
+  const studentId = document.getElementById("studentId").value;
+
+  if (!studentId) {
+    e.preventDefault(); // block submission
+    alert("Ошибка: студент не выбран!");
+    return false;
+  }
+});
+</script>
+<script>
+document.querySelectorAll(".btn.more").forEach(btn => {
+  btn.addEventListener("click", async function () {
+    const id = this.dataset.id;
+
+    try {
+      const response = await fetch(`/student/${id}/more/`);
+      const data = await response.json();
+
+      // Заполняем поля
+      document.getElementById("moreStudentName").textContent = data.student_name;
+      document.getElementById("moreStudentClass").textContent = data.student_class;
+
+      // Payments
+      const paymentsTable = document.getElementById("morePayments");
+      paymentsTable.innerHTML = data.payments.map(p =>
+        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td></tr>`
+      ).join("");
+
+      // Debts
+      const debtsTable = document.getElementById("moreDebts");
+      debtsTable.innerHTML = data.debts.map(d =>
+        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td></tr>`
+      ).join("");
+
+      // Totals (считаем на бэке или тут)
+      document.getElementById("moreTotalPayments").textContent = data.total_payments.toLocaleString("ru-RU");
+      document.getElementById("moreTotalDebts").textContent = data.total_debts.toLocaleString("ru-RU");
+      document.getElementById("moreBalance").textContent = data.balance.toLocaleString("ru-RU");
+
+      // Показать модалку
+      document.getElementById("moreModal").classList.add("active");
+
+    } catch (err) {
+      console.error("Ошибка загрузки данных:", err);
+    }
+  });
+});
+
+// Закрытие модалки
+document.getElementById("closeMoreBtn").addEventListener("click", () => {
+  document.getElementById("moreModal").classList.remove("active");
+});
+</script>
+
+<script>
+  document.querySelectorAll(".btn.edit").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const tr = this.closest("tr");
+
+    // Заполняем форму модалки
+    document.getElementById("studentInput").value = tr.dataset.student;
+    document.getElementById("studentId").value = tr.dataset.studentid;
+    document.getElementById("studentClass").value = tr.dataset.studentclass;
+
+    document.getElementById("itemCategory").value = tr.dataset.type;
+
+    // сумма (raw + красивый вывод)
+    const sum = tr.dataset.sum;
+    document.getElementById("price_raw").value = sum;
+    document.getElementById("price").value = sum.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    // action → edit
+    document.getElementById("action").value = "edit";
+    document.getElementById("saveItemBtn").textContent = "Сохранить изменения";
+
+    openModal(itemModal);
+  });
+});
+</script>
+
 <script>
 const deleteModal = document.getElementById("deleteModal");
 const deleteItemPk = document.getElementById("deleteItemPk");

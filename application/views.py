@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render,redirect
 from django.urls import reverse_lazy
 from django.db import models
+from django.shortcuts import get_object_or_404
 from django.db.models.functions import Coalesce
 from django.db.models import F, DecimalField, ExpressionWrapper
 from django.views.decorators.http import require_GET
@@ -405,10 +406,31 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
       today = now().date()
+
+      students_with_debt = Payment.objects.filter(
+         transaction_type="debt",
+         created_at__year=today.year,
+         created_at__month=today.month
+      ).values_list("student_id", flat=True)
+
+
+      students = Student.objects.exclude(id__in=students_with_debt)
+
+      payments = [
+         Payment(
+            student=s,
+            transaction_type="debt",
+            sum=3800000
+         )
+         for s in students
+      ]
+
+      Payment.objects.bulk_create(payments)
       context['students']=Student.objects.values('id','name','lastname','middle_name','school_class__name')
       current_month = timezone.now().month
       current_year = timezone.now().year
       context['payment']=Payment.objects.filter(transaction_type='payment').select_related('student__school_class')
+      context['more'] = Payment.objects.select_related('student__school_class')
       context['debt']=Payment.objects.values('student__id', 'student__name','student__lastname','student__middle_name','student__school_class__name') \
     .annotate(
         total=(
@@ -435,8 +457,39 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       return  context
 
 
+def student_more(request, pk):
+   student = get_object_or_404(Student, pk=pk)
+   transactions = Payment.objects.filter(student=student).order_by("created_at")
+   total_payments=Payment.objects.filter(student=student,transaction_type="payment").aggregate(total=Sum('sum'))['total'] or 0
+   total_debts=Payment.objects.filter(student=student,transaction_type="debt").aggregate(total=Sum('sum'))['total'] or 0
+
+   payments = []
+   debts = []
 
 
+   for t in transactions:
+      if t.transaction_type == "payment":
+         payments.append({
+            "date": t.created_at.strftime("%d.%m.%Y"),
+            "type_of_payment": t.get_type_of_payment_display(),
+            "sum": float(t.sum),
+         })
+      else:
+         debts.append({
+            "date": t.created_at.strftime("%d.%m.%Y"),
+            "sum": float(t.sum),
+         })
+
+
+   return JsonResponse({
+      "student_name": f"{student.lastname} {student.name} {student.middle_name}",
+      "student_class": student.school_class.name,
+      "payments": payments,
+      "debts": debts,
+      "total_payments": float(total_payments),
+      "total_debts": float(total_debts),
+      "balance": float(total_debts - total_payments),
+   })
 
 # @csrf_exempt
 # def turnstile_event_view(request):

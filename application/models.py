@@ -157,6 +157,12 @@ class Payment(models.Model):
         return self.student.name
 
 
+class Discount(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+
+
 
 
 
