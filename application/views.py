@@ -384,6 +384,24 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
    template_name = 'kassa.html'
 
 
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+      type_of_payment=request.POST.get('type_of_payment')
+      sum=request.POST.get('sum')
+      student_pk=request.POST.get('student_id')
+      transaction_type="payment"
+      pk=request.POST.get('pk')
+      if action == "payment":
+         Payment.objects.create(sum=sum,type_of_payment=type_of_payment,transaction_type=transaction_type,student_id=student_pk)
+
+      elif action == "delete":
+         Payment.objects.filter(pk=pk).delete()
+
+
+
+
+      return redirect(request.path)
+
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
       today = now().date()

@@ -791,19 +791,20 @@ top-bar {
 
 
       <label for="itemCategory">Тип оплаты</label>
-      <select id="itemCategory" name="category" required>
+      <select id="itemCategory" name="type_of_payment" required>
         <option value="cash">Наличные</option>
         <option value="bank">Карта</option>
         <option value="card">Банковские переводы</option>
 
       </select>
    <label for="price">Сумма</label>
-<input id="price" type="number" placeholder="0.00" inputmode="decimal">
+<input type="text" id="price" />
+<input type="hidden" id="price_raw" name="sum" />
 
 
 
 
-      <input id="action" name="action"  value="add" hidden>
+      <input id="action" name="action"  value="payment" hidden>
       <div class="modal-actions">
         <button type="button" class="btn btn-cancel" id="cancelItemBtn">Отмена</button>
         <button type="submit" class="btn btn-primary" id="saveItemBtn">Сохранить</button>
@@ -811,6 +812,48 @@ top-bar {
     </form>
   </div>
 </div>
+<div class="modal" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" tabindex="-1">
+  <div class="modal-content">
+    <form method="POST">
+      {% csrf_token %}
+      <h2 id="deleteModalTitle">Удалить?</h2>
+      <p id="deleteItemName" style="font-weight:600; margin-bottom: 1.5rem;">
+        Вы хотите удалить?
+      </p>
+
+      <!-- Hidden inputs -->
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="pk" id="deleteItemPk" value="">
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" id="cancelDeleteBtn">Отмена</button>
+        <button type="submit" class="btn btn-primary">Удалить</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+const deleteModal = document.getElementById("deleteModal");
+const deleteItemPk = document.getElementById("deleteItemPk");
+
+// Вешаем обработчик на все кнопки удаления
+document.querySelectorAll(".btn.delete").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const pk = this.getAttribute("data-id");
+
+    // сохраняем PK в скрытое поле
+    deleteItemPk.value = pk;
+
+    // открыть модалку
+    openModal(deleteModal);
+  });
+});
+
+// закрытие по кнопке "Отмена"
+document.getElementById("cancelDeleteBtn").addEventListener("click", function () {
+  closeModal(deleteModal);
+});
+</script>
 <script>
 
 const students = [
@@ -870,24 +913,20 @@ document.addEventListener("click", function(e) {
 </script>
 <script>
 const priceInput = document.getElementById("price");
+const priceRaw   = document.getElementById("price_raw");
 
-priceInput.addEventListener("input", function (e) {
-  let value = this.value.replace(/\./g, "").replace(/,/g, ".");
-  // заменяем запятую на точку и убираем точки-разделители
+priceInput.addEventListener("input", function () {
+  let value = this.value;
 
-  if (value === "") {
-    this.value = "";
-    return;
-  }
+  // Убираем все кроме цифр
+  value = value.replace(/[^\d]/g, "");
 
-  // разделяем на целую и дробную часть
-  let [intPart, decPart] = value.split(".");
+  // Записываем "чистое" значение без точек
+  priceRaw.value = value;
 
-  // добавляем разделители тысяч для целой части
-  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-  // собираем обратно
-  this.value = decPart !== undefined ? intPart + "." + decPart : intPart;
+  // Форматируем для отображения
+  let intPart = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  this.value = intPart;
 });
 </script>
 <script>
