@@ -51,6 +51,7 @@ class Student(models.Model):
     prikaz_date_archive = models.DateField(blank=True, null=True)
     archive=models.BooleanField(default=False)
     document = models.FileField(blank=True, null=True, upload_to='student/')
+    discount = models.DecimalField(max_digits=10, decimal_places=2, blank=True,null=True)
     def __str__(self):
         return f"{self.lastname} {self.name} - {self.school_class}"
 
@@ -155,13 +156,6 @@ class Payment(models.Model):
 
     def __str__(self):
         return self.student.name
-
-
-class Discount(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
-
 
 
 

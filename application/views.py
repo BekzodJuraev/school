@@ -28,6 +28,7 @@ from django.contrib.auth import authenticate,login,logout
 from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment
 from django.utils import timezone
 
+
 class Dashboard(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'dashboard.html'
@@ -416,11 +417,12 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
 
       students = Student.objects.exclude(id__in=students_with_debt)
 
+
       payments = [
          Payment(
             student=s,
             transaction_type="debt",
-            sum=3800000
+            sum=s.discount if s.discount else 3800000
          )
          for s in students
       ]
