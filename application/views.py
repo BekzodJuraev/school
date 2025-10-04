@@ -498,6 +498,12 @@ class Discount_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'discount.html'
 
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['discount']=Student.objects.filter(discount__not)
+
+      return context
+
 
 # @csrf_exempt
 # def turnstile_event_view(request):
