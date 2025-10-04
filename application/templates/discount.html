@@ -386,19 +386,19 @@
       <a href="{% url 'dashboard' %}" class="menu-link">🏠 Панель</a>
        {% if request.user.profile.position == 'admin' %}
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
-         <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
-            <a href="{% url 'discount' %}" class="menu-link ">💸 Скидки</a>
-      <a href="{% url 'warehouse' %}" class="menu-link  ">📁 Склад</a>
+        <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
+          <a href="{% url 'discount' %}" class="menu-link active">💸 Скидки</a>
+        <a href="{% url 'warehouse' %}" class="menu-link  ">📁 Склад</a>
       <a href="{% url 'staff' %}" class="menu-link">👨‍🏫 Сотрудники</a>
         <a href="{% url 'class' %}" class="menu-link">📚 Классы</a>
       <a href="{% url 'student' %}" class="menu-link  ">🎓 Ученики</a>
-        <a href="{% url 'archive' %}" class="menu-link active">🗄️ Архив</a>
+        <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
          <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
-                {% elif request.user.profile.position == 'HR' %}
+              {% elif request.user.profile.position == 'HR' %}
       <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
       <a href="{% url 'class' %}" class="menu-link  ">📚 Классы</a>
       <a href="{% url 'student' %}" class="menu-link ">🎓 Ученики</a>
-      <a href="{% url 'archive' %}" class="menu-link active ">🗄️ Архив</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
       <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
               {% endif %}
 
@@ -407,13 +407,13 @@
 
   <!-- Main content -->
   <div class="main">
-    <h1>Архив</h1>
+    <h1>Ученики</h1>
 
     <div class="top-bar">
       <div class="search">
         <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
       </div>
-
+      <button class="btn-add" >➕ Добавить</button>
     </div>
 
     <table id="staffTable">
@@ -433,7 +433,7 @@
        <th>Класс</th>
             <th>Документ</th>
 
-      <th>Восстановить</th>
+      <th>Редактировать</th>
 
         </tr>
       </thead>
@@ -466,12 +466,29 @@
           {% endif %}
 
 
-                   <td data-label="Действия">
+          <td data-label="Действия">
 <button class="btn edit"
-  onclick="openDeleteModalFromEdit(this)"
-  data-id="{{ item.id }}">
- ♻️ Восстановить
+  onclick="editStaff(this)"
+  data-id="{{ item.id }}"
+  data-lastname="{{ item.lastname }}"
+  data-name="{{ item.name }}"
+  data-middle_name="{{ item.middle_name }}"
+  data-school_class="{{ item.school_class.name }}"
+  data-position_gender="{{ item.position_gender }}"
+  data-date_birth="{{ item.date_birth|date:'Y-m-d' }}"
+  data-adres="{{ item.adres }}"
+  data-passport="{{ item.passport }}"
+  data-phone="{{ item.phone }}"
+  data-prikaz="{{item.prikaz}}"
+  data-prikaz_date="{{item.prikaz_date|date:'Y-m-d'}}"
+
+
+
+>
+
+  ✏️
 </button>
+  </td>
 </tr>
     {% endfor %}
       </tbody>
@@ -480,22 +497,86 @@
    <div class="pagination" id="paginationContainer"></div>
 
 
-
-<div id="deleteStudentModal" class="modal" style="display: none;">
+<!-- Модальное окно -->
+<div id="addStaffModal" class="modal">
   <div class="modal-content">
-    <h2>Восстановить ученика</h2>
-    <form method="post">
+    <h2 id="modalTitle">Добавить сотрудника</h2>
+    <form id="staffForm" method="post" enctype="multipart/form-data">
+
       {% csrf_token %}
-      <input type="hidden" id="deleteStudentId" name="id">
-        <input type="hidden"  name="action" value="delete">
+      <div class="form-fields">
+        <!-- Фото первым -->
+      <div class="file-upload">
+  <label>Фото:</label>
+  <label class="custom-file">
+    <input type="file" name="photo" accept="image/*" onchange="updateFileLabel(this)" />
+    <span data-default="📷 Загрузить фото">📷 Загрузить фото</span>
+  </label>
+</div>
+        <input type="hidden" id="formId" name="id" />
+        <input type="text" name="lastname" placeholder="Фамилия" required />
+        <input type="text" name="name" placeholder="Имя" required />
+        <input type="text" name="middle_name" placeholder="Отчество" required />
+        <input type="date" name="date_birth" placeholder="Год рождения" required/>
+            <select name="school_class" required>
+          <option value="">Класс</option>
+                 {% for item in classes %}
+        <option value="{{ item.pk }}">{{ item.name }} </option>
+      {% endfor %}
+
+        </select>
+
+        <select name="position_gender" required>
+          <option value="">Пол</option>
+          <option value="male">Муж</option>
+          <option value="female">Жен</option>
+        </select>
+        <input type="tel" name="phone"  placeholder="+998901234567"
+       pattern="^\+998\d{9}$"
+       title="+998901234567"  required/>
+        <input type="text" name="adres" placeholder="Адрес"  required />
+        <input type="text" name="passport" placeholder="Cвидетельство о рождении"  required />
+    <div class="form-row">
+  <input type="number" name="prikaz" placeholder="Номер приказа" required />
+  <span class="input-separator">от</span>
+  <input type="date" name="prikaz_date" placeholder="Дата приказа" required />
+</div>
+
+
+        <div class="file-upload">
+  <label>Документ:</label>
+  <label class="custom-file">
+    <input type="file" name="document" accept=".pdf,.doc,.docx" onchange="updateFileLabel(this)" />
+    <span data-default="📄 Загрузить Документ">📄 Загрузить Документ</span>
+  </label>
+</div>
+
+
+
+      <div class="modal-actions">
+        <button type="submit" class="btn primary">💾 Сохранить</button>
+        <button type="button" class="btn" onclick="closeModal()">❌ Отмена</button>
+      </div>
+        <input type="hidden" name="action" id="formAction" value="create">
+    </form>
+  </div>
+</div>
+<div id="deleteStudentModal" class="modal">
+  <div class="modal-content">
+    <h2>Удаление ученика</h2>
+    <form id="deleteStudentForm" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="id" id="deleteStudentId">
+      <input type="hidden" name="action" value="delete">
+
       <div class="form-row">
   <input type="number" name="prikaz" placeholder="Номер приказа" required />
   <span class="input-separator">от</span>
   <input type="date" name="prikaz_date" placeholder="Дата приказа" required />
 </div>
 
-      <div style="margin-top: 1rem; display: flex; gap: 1rem;">
-        <button type="submit" class="btn primary">✅ Подтвердить</button>
+      <div class="modal-actions">
+        <button type="submit" class="btn primary">✅ Подтвердить удаление</button>
         <button type="button" class="btn" onclick="closeDeleteModal()">❌ Отмена</button>
       </div>
     </form>
@@ -547,7 +628,86 @@
     }
   }
 </script>
+<script>
 
+  function openModal() {
+    document.getElementById('modalTitle').textContent = 'Добавить ученика';
+    document.getElementById('addStaffModal').style.display = 'flex';
+
+    const form = document.getElementById('staffForm');
+    form.reset();
+
+    // Clear hidden fields and reset action
+    document.getElementById('formId').value = '';
+    document.getElementById('formAction').value = 'create';
+
+    // Reset file upload labels
+    const spans = document.querySelectorAll('.custom-file span');
+    spans.forEach(span => {
+      span.textContent = span.dataset.default;
+    });
+
+    // Remove delete button if exists
+    const deleteBtn = document.getElementById('deleteButton');
+    if (deleteBtn) deleteBtn.remove();
+  }
+
+  document.querySelector('.btn-add').addEventListener('click', function (e) {
+    e.preventDefault();
+    openModal();
+  });
+
+
+
+  function closeModal() {
+    document.getElementById('addStaffModal').style.display = 'none';
+  }
+
+  function editStaff(button) {
+    document.getElementById('modalTitle').textContent = 'Редактировать ученика';
+    document.getElementById('addStaffModal').style.display = 'flex';
+
+    // Fill in all the fields from data attributes
+    document.getElementById('formId').value = button.dataset.id || '';
+    document.getElementById('formAction').value = 'update';
+    document.querySelector('[name="lastname"]').value = button.dataset.lastname || '';
+    document.querySelector('[name="name"]').value = button.dataset.name || '';
+    document.querySelector('[name="middle_name"]').value = button.dataset.middle_name || '';
+    document.querySelector('[name="position_gender"]').value = button.dataset.position_gender || '';
+    document.querySelector('[name="phone"]').value = button.dataset.phone || '';
+    document.querySelector('[name="date_birth"]').value = button.dataset.date_birth || '';
+    document.querySelector('[name="prikaz"]').value = button.dataset.prikaz || '';
+    document.querySelector('[name="prikaz_date"]').value = button.dataset.prikaz_date || '';
+   const schoolClassSelect = document.querySelector('[name="school_class"]');
+const className = button.dataset.school_class;  // должно быть именно name
+
+for (let option of schoolClassSelect.options) {
+  if (option.textContent.trim() === className.trim()) {
+    schoolClassSelect.value = option.value;
+    break;
+  }
+}
+    document.querySelector('[name="passport"]').value = button.dataset.passport || '';
+    document.querySelector('[name="adres"]').value = button.dataset.adres || '';
+
+    // Add Delete button if it doesn't exist
+   const actions = document.querySelector('.modal-actions');
+if (!document.getElementById('deleteButton')) {
+  const delBtn = document.createElement('button');
+  delBtn.id = 'deleteButton';
+  delBtn.type = 'button';
+  delBtn.className = 'btn';
+  delBtn.textContent = '🗑 Удалить';
+  delBtn.onclick = function () {
+  openDeleteModalFromEdit(button.dataset.id);
+};
+  actions.prepend(delBtn);
+}
+  }
+
+
+
+</script>
 <script>
   const rowsPerPage = 10; // Customize per your needs
   const rows = document.querySelectorAll('.staff-row');
@@ -581,20 +741,14 @@
   setupPagination();
 </script>
 <script>
-function openDeleteModalFromEdit(button) {
-  const id = button.dataset.id;
-  const modal = document.getElementById('deleteStudentModal');
-  const hiddenInput = document.getElementById('deleteStudentId');
+function openDeleteModalFromEdit(id) {
+  document.getElementById('deleteStudentModal').style.display = 'flex';
 
-  if (modal && hiddenInput) {
-    hiddenInput.value = id;
-    modal.style.display = 'flex';
-  }
+  document.getElementById('deleteStudentId').value = id;
 }
 
 function closeDeleteModal() {
-  const modal = document.getElementById('deleteStudentModal');
-  if (modal) modal.style.display = 'none';
+  document.getElementById('deleteStudentModal').style.display = 'none';
 }
 </script>
 

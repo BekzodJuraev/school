@@ -428,6 +428,8 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       ]
 
       Payment.objects.bulk_create(payments)
+
+
       context['students']=Student.objects.values('id','name','lastname','middle_name','school_class__name')
       current_month = timezone.now().month
       current_year = timezone.now().year
@@ -492,6 +494,10 @@ def student_more(request, pk):
       "total_debts": float(total_debts),
       "balance": float(total_debts - total_payments),
    })
+class Discount_view(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'discount.html'
+
 
 # @csrf_exempt
 # def turnstile_event_view(request):
