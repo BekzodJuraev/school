@@ -1,0 +1,290 @@
+{% load humanize %}
+{% if request.user.profile.approve %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Школьная CRM Панель</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f6fa;
+      display: flex;
+      flex-direction: row;
+      min-height: 100vh;
+    }
+
+     .sidebar {
+      width: 240px;
+      background-color: #1e1e2f;
+      color: white;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .menu-link {
+      display: block;
+      background-color: #2a2a40;
+      padding: 0.8rem 1rem;
+      border-radius: 12px;
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.3s ease;
+    }
+
+    .menu-link:hover {
+      background-color: #3b3b5a;
+      color: #ffcc00;
+    }
+
+    .menu-link.active {
+      background-color: #4e73df;
+      color: white;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      padding: 2rem;
+    }
+
+
+
+    header {
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 24px;
+      color: #333;
+    }
+
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.08);
+      flex: 1;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-bottom: 0.5rem;
+    }
+
+    .card p {
+      font-size: 20px;
+      font-weight: bold;
+      color: #4e73df;
+    }
+
+    .actions {
+      margin-bottom: 2rem;
+    }
+
+    .actions h2 {
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn.primary {
+      background-color: #4e73df;
+      color: white;
+    }
+
+    .btn.success {
+      background-color: #1cc88a;
+      color: white;
+    }
+
+    .btn.info {
+      background-color: #36b9cc;
+      color: white;
+    }
+
+    .btn.warning {
+      background-color: #f6c23e;
+      color: #333;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 1rem;
+      }
+
+      .sidebar h2 {
+        display: none;
+      }
+
+      .sidebar ul {
+        display: flex;
+        flex-direction: row;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+
+      .main {
+        padding: 1rem;
+      }
+
+      .card {
+        min-width: 100%;
+      }
+
+      .button-group {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>🏫 ШколаCRM</h2>
+    <nav class="menu">
+      <a href="{% url 'dashboard' %}" class="menu-link active" >🏠 Панель</a>
+       {% if request.user.profile.position == 'admin' %}
+      <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+       <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
+      <a href="{% url 'discount' %}" class="menu-link">💸 Скидки</a>
+         <a href="{% url 'warehouse' %}" class="menu-link ">📁 Склад</a>
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+      {% elif request.user.profile.position == 'supplier' %}
+      <a href="{% url 'warehouse' %}" class="menu-link ">📁 Склад</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+      {% elif request.user.profile.position == 'HR' %}
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+
+      {% endif %}
+
+    </nav>
+  </div>
+
+  <div class="main">
+    <header>
+      <h1>Добро пожаловать, {{request.user.profile.name}}</h1>
+      <p>📅 <span id="date"></span></p>
+    </header>
+
+    <section class="cards">
+      <div class="card">
+        <h3>Всего учеников</h3>
+        <p>{{student}}</p>
+      </div>
+        <div class="card">
+        <h3>Сотрудники</h3>
+        <p>{{staff}}</p>
+      </div>
+      <div class="card">
+        <h3>Преподавателей</h3>
+        <p>{{teacher}}</p>
+      </div>
+      {% if request.user.profile.position == 'admin' %}
+      <div class="card">
+        <h3>Доход за месяц</h3>
+        <p>{{sum|intcomma}} сум</p>
+      </div>
+      {% endif %}
+
+
+    </section>
+
+    <section class="actions">
+      <h2>Быстрые действия</h2>
+      <div class="button-group">
+        <button class="btn primary" onclick="window.location.href='{% url 'student' %}'">➕ Добавить ученика</button>
+        <button class="btn success" onclick="window.location.href='{% url 'staff' %}'">➕ Добавить сотрудника</button>
+        {% if asd %}
+        <button class="btn info" onclick="alert('Генерация отчёта...')">📊 Сформировать отчёт</button> */
+        <button class="btn warning" onclick="alert('Отправка объявления...')">💬 Отправить объявление</button>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+                        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const today = new Date();
+    const formattedDate = `${today.getDate()} ${monthNames[today.getMonth()]} ${today.getFullYear()} г.`;
+    document.getElementById("date").textContent = formattedDate;
+  </script>
+
+</body>
+</html>
+
+
+{% else %}
+{% include 'waiting.html' %}
+{% endif %}

@@ -1,0 +1,1132 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"></script>
+<title>ШколаCRM — Касса</title>
+<style>
+  /* === Your base styles === */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f6fa;
+    color: #222;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background-color: #1e1e2f;
+    width: 240px;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    box-shadow: inset 2px 0 8px #00000055;
+    transition: width 0.3s ease;
+    user-select: none;
+    position: relative;
+  }
+  .sidebar.collapsed {
+    width: 70px;
+  }
+  .sidebar h2 {
+    font-size: 24px;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: white;
+    user-select: text;
+  }
+  .menu {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .menu-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #2a2a40;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 0 8px #00000044;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    user-select: none;
+  }
+  .menu-link:hover {
+    background-color: #3b3b5a;
+    color: #ffcc00;
+  }
+  .menu-link.active {
+    background-color: #4e73df;
+    color: white;
+    box-shadow: 0 0 15px #4e73dfaa;
+  }
+  .sidebar.collapsed .menu-link span.text {
+    display: none;
+  }
+  .menu-link .icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .sidebar-toggle {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4e73df;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    color: white;
+    box-shadow: 0 0 10px #4e73dfaa;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .sidebar-toggle:hover {
+    background-color: #3563c6;
+    box-shadow: 0 0 20px #5a8bffcc;
+  }
+
+  /* Main wrapper */
+  .main-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    padding: 2.5rem 3rem;
+    color: #222;
+    position: relative;
+  }
+
+  /* Top bar */
+  header.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+  }
+  header.top-bar h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #4e73df;
+  }
+  .user-info {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #666;
+    user-select: none;
+  }
+
+  /* Summary cards grid */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  .summary-card {
+    background-color: #4e73df;
+    border-radius: 16px;
+    padding: 2rem;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 15px #4e73df88;
+    cursor: default;
+    user-select: none;
+    transition: box-shadow 0.3s ease;
+  }
+  .summary-card:hover {
+    box-shadow: 0 8px 30px #4e73dfcc;
+  }
+  .summary-title {
+    font-weight: 700;
+    font-size: 1.4rem;
+    margin-bottom: 0.8rem;
+  }
+  .summary-value {
+    font-weight: 900;
+    font-size: 3.5rem;
+    letter-spacing: 0.06em;
+  }
+  .summary-unit {
+    font-weight: 700;
+    font-size: 1.6rem;
+    margin-left: 0.3rem;
+  }
+
+  /* Tabs nav */
+  .tabs {
+    display: flex;
+    border-bottom: 3px solid #4e73df;
+    margin-bottom: 2rem;
+  }
+  .tabs button {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 1.2rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 4px solid transparent;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    user-select: none;
+  }
+  .tabs button.active,
+  .tabs button:hover:not(:disabled) {
+    color: #4e73df;
+    border-bottom-color: #4e73df;
+  }
+  .tabs button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* Tab content */
+  .tab-content {
+    display: none;
+    animation: fadeIn 0.35s ease forwards;
+  }
+  .tab-content.active {
+    display: block;
+  }
+  @keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 16px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  thead tr th {
+    background: #4e73df;
+    color: white;
+    padding: 1rem 1.8rem;
+    font-weight: 700;
+    text-align: left;
+    user-select: none;
+  }
+  tbody tr {
+    background: #f9f9f9;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+  }
+  tbody tr:hover {
+    background: #e2eaff;
+  }
+  tbody tr td {
+    padding: 1rem 1.5rem;
+    vertical-align: middle;
+    color: #333;
+  }
+  tbody tr td img {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .btn.edit {
+    background-color: #36b9cc;
+    color: white;
+    margin-right: 0.5rem;
+    box-shadow: 0 0 8px #36b9ccaa;
+  }
+  .btn.edit:hover {
+    background-color: #2a9db0;
+    box-shadow: 0 0 15px #2a9db0cc;
+  }
+  .btn.delete {
+    background-color: #e74a3b;
+    color: white;
+    box-shadow: 0 0 8px #e74a3bcc;
+  }
+  .btn.delete:hover {
+    background-color: #c0392b;
+    box-shadow: 0 0 15px #c0392bcc;
+  }
+
+  /* Floating add button */
+  .btn-add-floating {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    background-color: #4e73df;
+    border: none;
+    color: white;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 32px;
+    font-weight: 700;
+    box-shadow: 0 0 20px #4e73dfcc;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-add-floating:hover {
+    background-color: #3563c6;
+    box-shadow: 0 0 30px #5a8bffcc;
+  }
+
+  /* Notifications form */
+  form.notifications-form {
+    max-width: 600px;
+    background: white;
+    padding: 2rem 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 0 20px #4e73df44;
+    user-select: none;
+  }
+  form.notifications-form h3 {
+    font-weight: 700;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #4e73df;
+  }
+  form.notifications-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    color: #555;
+  }
+  form.notifications-form input[type=number] {
+    width: 100%;
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    border: 1px solid #ccc;
+    font-weight: 600;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    color: #333;
+    box-shadow: inset 0 0 8px #4e73df44;
+    transition: box-shadow 0.3s ease;
+  }
+  form.notifications-form input[type=number]:focus {
+    outline: none;
+    box-shadow: inset 0 0 12px #4e73dfcc;
+  }
+  form.notifications-form button {
+    margin-top: 1.8rem;
+    width: 100%;
+    background: #4e73df;
+    border: none;
+    padding: 1.2rem 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: white;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 0 25px #4e73dfcc;
+    transition: background-color 0.3s ease;
+  }
+  form.notifications-form button:hover {
+    background-color: #3563c6;
+  }
+
+  /* Modal overlay */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+  }
+  .modal.active {
+    display: flex;
+  }
+  .modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    max-width: 500px;
+    width: 90vw;
+    box-shadow: 0 0 25px #4e73dfaa;
+    position: relative;
+    user-select: text;
+  }
+  .modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #4e73df;
+    font-weight: 700;
+  }
+  .modal-content label {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    color: #444;
+  }
+  .modal-content input[type=text],
+  .modal-content input[type=number],
+  .modal-content select {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.2rem;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    color: #222;
+    box-shadow: inset 0 0 8px #4e73df44;
+    transition: box-shadow 0.3s ease;
+  }
+  .modal-content input[type=text]:focus,
+  .modal-content input[type=number]:focus,
+  .modal-content select:focus {
+    outline: none;
+    box-shadow: inset 0 0 12px #4e73dfcc;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  .modal-actions button {
+    padding: 0.6rem 1.6rem;
+    font-weight: 700;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .modal-actions .btn-cancel {
+    background: #ddd;
+    color: #555;
+  }
+  .modal-actions .btn-cancel:hover {
+    background: #ccc;
+  }
+  .modal-actions .btn-primary {
+    background: #4e73df;
+    color: white;
+    box-shadow: 0 0 15px #4e73dfaa;
+  }
+  .modal-actions .btn-primary:hover {
+    background: #3563c6;
+  }
+  /* Responsive */
+  @media (max-width: 900px) {
+    .summary-grid {
+      grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
+    }
+  }
+  @media (max-width: 700px) {
+    body {
+      flex-direction: column;
+    }
+    .sidebar {
+      width: 100%;
+      height: 60px;
+      padding: 0 1rem;
+      flex-direction: row;
+      align-items: center;
+      box-shadow: inset 0 -2px 10px #00000022;
+    }
+    .sidebar.collapsed {
+      width: 100%;
+    }
+    .sidebar h2 {
+      display: none;
+    }
+    .menu {
+      flex-direction: row;
+      gap: 0.5rem;
+      width: 100%;
+      justify-content: space-around;
+    }
+    .menu-link {
+      flex: 1;
+      justify-content: center;
+      padding: 0.6rem 0;
+      font-size: 0.9rem;
+      border-radius: 12px 12px 0 0;
+    }
+    .sidebar-toggle {
+      display: none;
+    }
+    header.top-bar {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .main-wrapper {
+      padding: 1rem 1.5rem;
+    }
+    table, thead, tbody, th, td, tr {
+      display: block;
+      width: 100%;
+    }
+    thead tr th {
+      display: none;
+    }
+    tbody tr {
+      margin-bottom: 1.5rem;
+      border-radius: 12px;
+      background: #f9f9f9;
+      padding: 1rem;
+    }
+    tbody tr td {
+      padding-left: 50%;
+      position: relative;
+      text-align: right;
+    }
+    tbody tr td::before {
+      content: attr(data-label);
+      position: absolute;
+      left: 1rem;
+      width: 45%;
+      font-weight: 700;
+      color: #555;
+      text-align: left;
+    }
+    tbody tr td img {
+      margin: 0 0 0 auto;
+      display: block;
+    }
+  }
+  .modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+}
+top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #4e73df;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.filters input[type="text"],
+.filters input[type="date"] {
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.filters button {
+  padding: 6px 12px;
+  background: white;
+  color: #4e73df;
+  border: 1px solid #4e73df;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.filters button:hover {
+  background: #4e73df;
+  color: white;
+}
+#results {
+  position: absolute;
+  top: 100%;   /* прямо под input */
+  left: 0;
+  right: 0;
+  margin: 2px 0 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
+  display: none;
+  z-index: 999;
+}
+
+#results li {
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#results li:hover {
+  background: #f3f6ff;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar" aria-label="Навигация по сайту">
+  <h2>🏫 ШколаCRM</h2>
+  <nav class="menu" aria-label="Главное меню">
+  <a href="{% url 'dashboard' %}" class="menu-link" > 🏠 Панель</a>
+       {% if request.user.profile.position == 'admin' %}
+      <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+      {% endif %}
+      <a href="{% url 'kassa' %}" class="menu-link  active ">📊 Касса</a>
+        <a href="{% url 'discount' %}" class="menu-link ">💸 Скидки</a>
+         <a href="{% url 'warehouse' %}" class="menu-link">📁 Склад</a>
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+     <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+  </nav>
+  <button class="sidebar-toggle" aria-label="Свернуть меню" id="sidebarToggle">⇤</button>
+</aside>
+
+<!-- Main content -->
+<div class="main-wrapper" role="main">
+  <header class="top-bar">
+    <h1>Касса и оплата</h1>
+
+    <div class="user-info" aria-label="Пользователь: Иван Иванов">
+      {{request.user.profile.lastname}} {{request.user.profile.name}}
+    </div>
+  </header>
+    <section class="summary-grid" aria-label="Общее количество товаров по категориям">
+    <article class="summary-card" tabindex="0" aria-label="Школьные принадлежности: 385 штук">
+      <h2 class="summary-title">Доход за год</h2>
+      <p class="summary-value">{{sum_year|intcomma}}<span class="summary-unit"> сум</span></p>
+    </article>
+    <article class="summary-card" tabindex="0" aria-label="Мебель: 120 штук">
+      <h2 class="summary-title">Доход за месяц</h2>
+      <p class="summary-value">{{sum_month|intcomma}}<span class="summary-unit"> сум</span></p>
+    </article>
+    <article class="summary-card" tabindex="0" aria-label="Оборудование: 45 штук">
+      <h2 class="summary-title">Доход за день</h2>
+      <p class="summary-value">{{sum_day|intcomma}}<span class="summary-unit"> сум</span></p>
+    </article>
+  </section>
+   <div class="filters">
+    <!-- Search -->
+   <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
+
+    <!-- Date filter -->
+    <label>
+      от:
+      <input type="date" id="startDate">
+    </label>
+    <label>
+      до:
+      <input type="date" id="endDate">
+    </label>
+    <button onclick="filterTable()">Фильтр</button>
+  </div>
+  <!-- Tabs -->
+  <nav class="tabs" role="tablist" aria-label="Переключение между разделами">
+    <button role="tab" aria-selected="true" aria-controls="payments-tab" id="tabPayments" class="active">Платежи</button>
+    <button role="tab" aria-selected="false" aria-controls="debts-tab" id="tabDebts">Задолженности</button>
+  </nav>
+
+  <!-- Payments tab -->
+  <section id="payments-tab" class="tab-content active" role="tabpanel" aria-labelledby="tabPayments" tabindex="0">
+    <table aria-label="Учёт оплат" id="paymentsTable">
+      <thead>
+        <tr>
+          <th scope="col">Ученик</th>
+          <th scope="col">Тип оплаты</th>
+          <th scope="col">Сумма (UZS)</th>
+          <th scope="col">Дата</th>
+          <th scope="col">Класс</th>
+          <th scope="col">Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in payment %}
+       <tr
+  data-id="{{item.pk}}"
+  data-student="{{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}"
+  data-studentid="{{item.student.id}}"
+  data-studentclass="{{item.student.school_class.name}}"
+  data-type="{{item.type_of_payment}}"
+  data-sum="{{ item.sum|floatformat:0 }}"
+>
+  <td data-label="Ученик">{{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}</td>
+  <td data-label="Тип оплаты">{{item.get_type_of_payment_display}}</td>
+  <td data-label="Сумма">{{item.sum}}</td>
+  <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
+  <td data-label="Статус">{{item.student.school_class.name}}</td>
+  <td>
+    <button class="btn more" data-id="{{item.student.pk}}">👁️</button>
+    <button class="btn edit" data-id="{{item.pk}}">✏️</button>
+    <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
+  </td>
+</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button class="btn-add-floating" aria-label="Добавить оплату" id="addPaymentBtn">＋</button>
+  </section>
+
+  <!-- Services tab -->
+  <section id="services-tab" class="tab-content" role="tabpanel" aria-labelledby="tabServices" tabindex="0">
+    <table aria-label="Оплата дополнительных услуг" id="servicesTable">
+      <thead>
+        <tr>
+          <th scope="col">Ученик</th>
+          <th scope="col">Услуга</th>
+          <th scope="col">Сумма (UZS)</th>
+          <th scope="col">Дата</th>
+          <th scope="col">Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for service in services %}
+        <tr data-id="{{service.pk}}">
+          <td>{{service.student.full_name}}</td>
+          <td>{{service.service_name}}</td>
+          <td>{{service.amount}}</td>
+          <td>{{service.created_at|date:'d.m.Y'}}</td>
+          <td>
+            {% if service.is_paid %} ✅ Оплачено {% else %} ❌ Не оплачено {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button class="btn-add-floating" aria-label="Добавить услугу" id="addServiceBtn">＋</button>
+  </section>
+
+  <section id="debts-tab" class="tab-content" role="tabpanel" aria-labelledby="tabDebts" tabindex="0">
+    <table aria-label="Задолженности" id="debtsTable">
+      <thead>
+        <tr>
+          <th scope="col">Ученик</th>
+          <th scope="col">Сумма задолженности</th>
+          <th scope="col">Дата последнего платежа</th>
+           <th scope="col">Класс</th>
+          <th scope="col">Действия</th>
+
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in debt %}
+        <tr>
+          <td>{{item.student__lastname}} {{item.student__name}} {{item.student__middle_name}}</td>
+          <td>{{item.total|intcomma}}</td>
+          <td>{{item.last_payment|date:'d.m.Y'}}</td>
+          <td>{{item.student__school_class__name}}</td>
+          <td>
+           <button class="btn more" data-id="{{item.student__id}}">👁️</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+
+<!-- Modals -->
+<div class="modal" id="itemModal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle" tabindex="-1">
+  <div class="modal-content">
+    <h2 id="itemModalTitle">Оплата</h2>
+    <form id="itemForm" method="POST">
+           {% csrf_token %}
+<div style="position: relative; width: 100%;">
+  <label for="studentInput">Ученик</label>
+  <input
+    type="text"
+    id="studentInput"
+    name="student"
+    class="form-control"
+    placeholder="Введите имя ученика"
+    required
+    autocomplete="off"
+  />
+
+  <ul id="results" class="student-results"></ul>
+
+  <!-- скрытые поля для backend -->
+  <input type="hidden" id="studentId" name="student_id">
+  <input type="hidden" id="studentClass" name="student_class">
+</div>
+
+
+      <label for="itemCategory">Тип оплаты</label>
+      <select id="itemCategory" name="type_of_payment" required>
+        <option value="cash">Наличные</option>
+        <option value="bank">Карта</option>
+        <option value="card">Банковские переводы</option>
+
+      </select>
+   <label for="price">Сумма</label>
+<input type="text" id="price" />
+<input type="hidden" id="price_raw" name="sum" />
+
+
+
+
+      <input id="action" name="action"  value="payment" hidden>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" id="cancelItemBtn">Отмена</button>
+        <button type="submit" class="btn btn-primary" id="saveItemBtn">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="modal" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" tabindex="-1">
+  <div class="modal-content">
+    <form method="POST">
+      {% csrf_token %}
+      <h2 id="deleteModalTitle">Удалить?</h2>
+      <p id="deleteItemName" style="font-weight:600; margin-bottom: 1.5rem;">
+        Вы хотите удалить?
+      </p>
+
+      <!-- Hidden inputs -->
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="pk" id="deleteItemPk" value="">
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" id="cancelDeleteBtn">Отмена</button>
+        <button type="submit" class="btn btn-primary">Удалить</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="modal" id="moreModal" role="dialog" aria-modal="true" aria-labelledby="moreModalTitle" tabindex="-1">
+  <div class="modal-content">
+    <h2 id="moreModalTitle">Информация об ученике</h2>
+
+    <div class="student-info">
+      <p><strong>Ученик:</strong> <span id="moreStudentName"></span></p>
+      <p><strong>Класс:</strong> <span id="moreStudentClass"></span></p>
+    </div>
+
+    <h3>Платежи</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>Тип оплаты</th>
+          <th>Сумма</th>
+        </tr>
+      </thead>
+      <tbody id="morePayments"></tbody>
+    </table>
+
+    <h3>Начислении</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Дата</th>
+          <th>Сумма</th>
+        </tr>
+      </thead>
+      <tbody id="moreDebts"></tbody>
+    </table>
+
+    <div class="totals">
+      <p><strong>Итого оплачено:</strong> <span id="moreTotalPayments">0</span></p>
+      <p><strong>Итого начисление:</strong> <span id="moreTotalDebts">0</span></p>
+      <p><strong>Итого долги:</strong> <span id="moreBalance">0</span></p>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-cancel" id="closeMoreBtn">Закрыть</button>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById("itemForm").addEventListener("submit", function (e) {
+  const studentId = document.getElementById("studentId").value;
+
+  if (!studentId) {
+    e.preventDefault(); // block submission
+    alert("Ошибка: студент не выбран!");
+    return false;
+  }
+});
+</script>
+<script>
+document.querySelectorAll(".btn.more").forEach(btn => {
+  btn.addEventListener("click", async function () {
+    const id = this.dataset.id;
+
+    try {
+      const response = await fetch(`/student/${id}/more/`);
+      const data = await response.json();
+
+      // Заполняем поля
+      document.getElementById("moreStudentName").textContent = data.student_name;
+      document.getElementById("moreStudentClass").textContent = data.student_class;
+
+      // Payments
+      const paymentsTable = document.getElementById("morePayments");
+      paymentsTable.innerHTML = data.payments.map(p =>
+        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td></tr>`
+      ).join("");
+
+      // Debts
+      const debtsTable = document.getElementById("moreDebts");
+      debtsTable.innerHTML = data.debts.map(d =>
+        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td></tr>`
+      ).join("");
+
+      // Totals (считаем на бэке или тут)
+      document.getElementById("moreTotalPayments").textContent = data.total_payments.toLocaleString("ru-RU");
+      document.getElementById("moreTotalDebts").textContent = data.total_debts.toLocaleString("ru-RU");
+      document.getElementById("moreBalance").textContent = data.balance.toLocaleString("ru-RU");
+
+      // Показать модалку
+      document.getElementById("moreModal").classList.add("active");
+
+    } catch (err) {
+      console.error("Ошибка загрузки данных:", err);
+    }
+  });
+});
+
+// Закрытие модалки
+document.getElementById("closeMoreBtn").addEventListener("click", () => {
+  document.getElementById("moreModal").classList.remove("active");
+});
+</script>
+
+<script>
+  document.querySelectorAll(".btn.edit").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const tr = this.closest("tr");
+
+    // Заполняем форму модалки
+    document.getElementById("studentInput").value = tr.dataset.student;
+    document.getElementById("studentId").value = tr.dataset.studentid;
+    document.getElementById("studentClass").value = tr.dataset.studentclass;
+
+    document.getElementById("itemCategory").value = tr.dataset.type;
+
+    // сумма (raw + красивый вывод)
+    const sum = tr.dataset.sum;
+    document.getElementById("price_raw").value = sum;
+    document.getElementById("price").value = sum.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    // action → edit
+    document.getElementById("action").value = "edit";
+    document.getElementById("saveItemBtn").textContent = "Сохранить изменения";
+
+    openModal(itemModal);
+  });
+});
+</script>
+
+<script>
+const deleteModal = document.getElementById("deleteModal");
+const deleteItemPk = document.getElementById("deleteItemPk");
+
+// Вешаем обработчик на все кнопки удаления
+document.querySelectorAll(".btn.delete").forEach(btn => {
+  btn.addEventListener("click", function () {
+    const pk = this.getAttribute("data-id");
+
+    // сохраняем PK в скрытое поле
+    deleteItemPk.value = pk;
+
+    // открыть модалку
+    openModal(deleteModal);
+  });
+});
+
+// закрытие по кнопке "Отмена"
+document.getElementById("cancelDeleteBtn").addEventListener("click", function () {
+  closeModal(deleteModal);
+});
+</script>
+<script>
+
+const students = [
+{% for item in students %}
+  {id: {{item.id}}, name: "{{item.lastname}} {{item.name}} {{item.middle_name}}", class: "{{item.school_class__name}}"},
+
+{% endfor %}
+];
+
+const input = document.getElementById("studentInput");   // поле ввода
+const results = document.getElementById("results");      // список результатов
+const studentIdField = document.getElementById("studentId"); // скрытый input для id
+const studentClassField = document.getElementById("studentClass"); // скрытый input для класса (если нужно)
+
+// обработчик поиска
+input.addEventListener("input", function() {
+  const query = this.value.toLowerCase().trim();
+  results.innerHTML = "";
+
+  if (query.length === 0) {
+    results.style.display = "none";
+    return;
+  }
+
+  // фильтрация по имени или по классу
+  const filtered = students.filter(s =>
+    s.name.toLowerCase().includes(query) || s.class.toLowerCase().includes(query)
+  );
+
+  // генерация выпадающих пунктов
+  filtered.forEach(s => {
+    const li = document.createElement("li");
+    li.innerHTML = `<strong>${s.name}</strong> <span style="color: gray;">(${s.class})</span>`;
+    li.style.cursor = "pointer";
+
+    li.onclick = () => {
+      input.value = s.name;              // в input только имя
+      studentIdField.value = s.id;       // id в hidden
+      if (studentClassField) {
+        studentClassField.value = s.class; // класс в hidden (если есть)
+      }
+      results.style.display = "none";    // скрываем список
+    };
+
+    results.appendChild(li);
+  });
+
+  results.style.display = filtered.length > 0 ? "block" : "none";
+});
+
+// если кликнули вне input или списка — скрываем результаты
+document.addEventListener("click", function(e) {
+  if (!input.contains(e.target) && !results.contains(e.target)) {
+    results.style.display = "none";
+  }
+});
+</script>
+<script>
+const priceInput = document.getElementById("price");
+const priceRaw   = document.getElementById("price_raw");
+
+priceInput.addEventListener("input", function () {
+  let value = this.value;
+
+  // Убираем все кроме цифр
+  value = value.replace(/[^\d]/g, "");
+
+  // Записываем "чистое" значение без точек
+  priceRaw.value = value;
+
+  // Форматируем для отображения
+  let intPart = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  this.value = intPart;
+});
+</script>
+<script>
+
+  const cancelItemBtn = document.getElementById('cancelItemBtn');
+const addItemBtn = document.getElementById('addPaymentBtn');
+  // Open Add Item modal
+  addItemBtn.addEventListener('click', () => {
+    editingRow = null;
+    itemModalTitle.textContent = 'Оплата';
+    itemForm.reset();
+    openModal(itemModal);
+  });
+
+  function openModal(modal) {
+    modal.classList.add('active');
+    modal.focus();
+  }
+  function closeModal(modal) {
+    modal.classList.remove('active');
+  }
+    // Cancel Add/Edit modal
+   cancelItemBtn.addEventListener('click', () => {
+    closeModal(itemModal);
+  });
+</script>
+
+<script>
+    const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebarToggle');
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+  });
+
+
+  const tabs = document.querySelectorAll('.tabs button');
+  const tabContents = document.querySelectorAll('.tab-content');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tabContents.forEach(tc => tc.classList.remove('active'));
+
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+
+      const target = tab.getAttribute('aria-controls');
+      document.getElementById(target).classList.add('active');
+    });
+  });
+
+      // Поиск
+document.getElementById('searchInput').addEventListener('input', function () {
+  const filter = this.value.toLowerCase();
+
+  // Первая таблица
+  const rows = document.querySelectorAll('#paymentsTable tbody tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(filter) ? '' : 'none';
+  });
+
+  // Вторая таблица
+  const rows2 = document.querySelectorAll('#debtsTable tbody tr');
+  rows2.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(filter) ? '' : 'none';
+  });
+});
+</script>
+</body>
+</html>

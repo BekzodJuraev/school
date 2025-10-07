@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в систему</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #141e30, #243b55);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            width: 400px;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            text-align: left;
+            margin: 10px 0 5px;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            outline: none;
+        }
+        input {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        button {
+            width: 105%;
+            background: #00c6ff;
+            color: white;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0072ff;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Вход в систему</h2>
+        <form action="" method="POST">
+            {% csrf_token %}
+            <label>Имя пользователя:</label>
+            <input type="text" placeholder="Введите имя пользователя" name="username" required>
+            
+            <label>Пароль:</label>
+            <input type="password" placeholder="Введите пароль" name="password" required>
+            {% if errors.invalid %}
+            <p style="color: red;">{{ errors.invalid }}</p>
+            {% endif %}
+            
+            <button type="submit">Далее</button>
+        </form>
+    </div>
+</body>
+</html>

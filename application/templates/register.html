@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #141e30, #243b55);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            width: 400px;
+        }
+        .registration-form {
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            margin: 10px 0 5px;
+        }
+        input, select, button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            outline: none;
+        }
+        input, select {
+            background: rgba(255, 255, 255, 0.2);
+            color: #b2b1b7;
+        }
+        button {
+            background: #00c6ff;
+            color: white;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0072ff;
+        }
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+</head>
+<body>
+    <div class="container">
+        <form class="registration-form"  method="POST" enctype="multipart/form-data">
+             {% csrf_token %}
+            <h2>Регистрация</h2>
+
+<label>Фамилия:</label>
+<input type="text" placeholder="Введите фамилию" name="lastname" required pattern="[А-Яа-яЁёA-Za-z\s]+" title="Фамилия должно содержать только буквы" value="{{request.POST.lastname}}">
+
+<label>Имя:</label>
+<input type="text" placeholder="Введите имя" name="name" required pattern="[А-Яа-яЁёA-Za-z\s]+" title="Имя должно содержать только буквы" value="{{request.POST.name}}">
+
+<label>Отчество:</label>
+<input type="text" placeholder="Введите отчество" name="middle_name" required pattern="[А-Яа-яЁёA-Za-z\s]+" title="Отчество должно содержать только буквы" value="{{request.POST.middle_name}}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<label>Выберите желаемую должность:</label>
+<select name="position" required>
+    <option value="" disabled selected>Выберите должность</option>
+    <option value="admin">Админ</option>
+    <option value="HR">Отдел кадров</option>
+    <option value="supplier">Завхоз</option>
+     <option value="zavuch">Завуч</option>
+  </optgroup>
+
+
+
+</select>
+<label>Придумайте логин:</label>
+<input type="text" name="login" required value="{{request.POST.login}}">
+<label>Придумайте пароль:</label>
+<div class="password-container">
+    <input type="password" name="password" id="password" required style="width:335px">
+    <button type="button" onclick="togglePassword()">
+        <i id="eye-icon" class="fa fa-eye"></i>  <!-- Using Font Awesome for the eye icon -->
+    </button>
+</div>
+
+
+            <button type="submit">Далее</button>
+
+            {% if errors.username %}
+  <p style="color:red;">{{ errors.username }}</p>
+{% endif %}
+
+{% if errors.password %}
+  <p style="color:red;">{{ errors.password }}</p>
+{% endif %}
+
+{% if errors.photo %}
+  <p style="color:red;">{{ errors.photo }}</p>
+{% endif %}
+        </form>
+    </div>
+</body>
+<script>
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById("date_birth").setAttribute("max", today);
+    function togglePassword() {
+        var passwordField = document.getElementById("password");
+        var eyeIcon = document.getElementById("eye-icon");
+
+        // Toggle the type between password and text
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+            eyeIcon.classList.remove("fa-eye");  // Hide eye icon
+            eyeIcon.classList.add("fa-eye-slash");  // Show slash icon
+        } else {
+            passwordField.type = "password";
+            eyeIcon.classList.remove("fa-eye-slash");  // Hide slash icon
+            eyeIcon.classList.add("fa-eye");  // Show eye icon
+        }
+    }
+</script>
+</html>

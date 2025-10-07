@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ученики</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6fa;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background-color: #1e1e2f;
+      color: white;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .menu-link {
+      display: block;
+      background-color: #2a2a40;
+      padding: 0.8rem 1rem;
+      border-radius: 12px;
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      transition: 0.3s ease;
+    }
+
+    .menu-link:hover {
+      background-color: #3b3b5a;
+      color: #ffcc00;
+    }
+
+    .menu-link.active {
+      background-color: #4e73df;
+      color: white;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      padding: 2rem;
+    }
+
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .search {
+      flex: 1;
+      max-width: 400px;
+    }
+
+    .search input {
+      width: 100%;
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+    }
+
+    .btn-add {
+      background: #4e73df;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: #f2f2f2;
+    }
+
+    td img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 50%;
+    }
+
+    .btn {
+      padding: 0.4rem 0.8rem;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .btn.edit {
+      background-color: #36b9cc;
+      color: white;
+    }
+
+    .btn.download {
+      background-color: #1cc88a;
+      color: white;
+    }
+
+    .pagination {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .pagination button {
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      background: #ddd;
+      cursor: pointer;
+    }
+
+    .pagination button.active {
+      background: #4e73df;
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 1rem;
+      }
+
+      .sidebar h2 {
+        display: none;
+      }
+
+      .menu {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%;
+      }
+
+      .menu-link {
+        flex: 1;
+        text-align: center;
+      }
+
+      .top-bar {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      th {
+        display: none;
+      }
+
+      td {
+        padding-left: 50%;
+        position: relative;
+        border-bottom: 1px solid #eee;
+      }
+
+      td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        font-weight: bold;
+        color: #666;
+      }
+
+      td img {
+        margin-top: 0.5rem;
+      }
+    }
+    .modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0; top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 650px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+
+.modal-content h2 {
+  margin-bottom: 1.5rem;
+  color: #1e1e2f;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-grid input,
+.form-grid select {
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  background-color: #f9f9f9;
+  width: 100%;
+}
+
+.form-grid label {
+  font-size: 13px;
+  color: #444;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.modal .btn.primary {
+  background-color: #4e73df;
+  color: white;
+}
+
+.modal .btn:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-fields input,
+.form-fields select {
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  background-color: #f9f9f9;
+  width: 100%;
+}
+
+/* Файловый input в виде кнопки */
+.custom-file {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  background: #f9f9f9;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  transition: 0.3s;
+}
+
+.custom-file:hover {
+  background-color: #e0e0e0;
+}
+
+.custom-file input[type="file"] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  height: 100%;
+  width: 100%;
+  cursor: pointer;
+}
+.file-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.file-name {
+  font-size: 13px;
+  color: #555;
+  margin-top: 0.2rem;
+  margin-left: 0.2rem;
+}
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-row input {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+  font-size: 14px;
+}
+
+.input-separator {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #333;
+}
+
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>🏫 ШколаCRM</h2>
+    <nav class="menu">
+      <a href="{% url 'dashboard' %}" class="menu-link">🏠 Панель</a>
+       {% if request.user.profile.position == 'admin' %}
+      <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+         <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
+            <a href="{% url 'discount' %}" class="menu-link ">💸 Скидки</a>
+      <a href="{% url 'warehouse' %}" class="menu-link  ">📁 Склад</a>
+      <a href="{% url 'staff' %}" class="menu-link">👨‍🏫 Сотрудники</a>
+        <a href="{% url 'class' %}" class="menu-link">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link  ">🎓 Ученики</a>
+        <a href="{% url 'archive' %}" class="menu-link active">🗄️ Архив</a>
+         <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+                {% elif request.user.profile.position == 'HR' %}
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link  ">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link ">🎓 Ученики</a>
+      <a href="{% url 'archive' %}" class="menu-link active ">🗄️ Архив</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+              {% endif %}
+
+    </nav>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+    <h1>Архив</h1>
+
+    <div class="top-bar">
+      <div class="search">
+        <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
+      </div>
+
+    </div>
+
+    <table id="staffTable">
+      <thead>
+        <tr>
+       <th>Фото</th>
+      <th>Фамилия</th>
+      <th>Имя</th>
+      <th>Отчество</th>
+      <th>Год рождения</th>
+      <th>Пол</th>
+      <th>Номер телефона</th>
+      <th>Адрес</th>
+      <th>Cвидетельство о рождении</th>
+      <th>Номер приказа</th>
+      <th>Дата приказа</th>
+       <th>Класс</th>
+            <th>Документ</th>
+
+      <th>Восстановить</th>
+
+        </tr>
+      </thead>
+      <tbody id="staffBody">
+      {% for item in class %}
+        <tr class="staff-row">
+  {% if item.photo %}
+  <td data-label="Фото"><img src="{{item.photo.url}}" alt="staff" /></td>
+  {% else %}
+          <td></td>
+  {% endif %}
+          <td data-label="Фамилия">{{item.lastname}}</td>
+  <td data-label="Имя">{{item.name}}</td>
+  <td data-label="Отчество">{{item.middle_name}}</td>
+  <td data-label="Год рождения">{{item.date_birth|date:'d.m.Y'}}</td>
+  <td data-label="Пол">{{item.get_position_gender_display}}</td>
+  <td data-label="Номер телефона">{{item.phone}}</td>
+  <td data-label="Адрес">{{item.adres}}</td>
+  <td data-label="Серия паспорта">{{item.passport}}</td>
+  <td data-label="Приказ">{{item.prikaz}}</td>
+    <td data-label="Номер приказа">{{item.prikaz_date|date:'d.m.Y'}}</td>
+    <td data-label="Класс">{{item.school_class.name}}</td>
+
+  {% if item.document %}
+  <td data-label="CV (UZ)">
+    <button class="btn download" onclick="downloadCV('{{item.document.url}}')">📄</button>
+  </td>
+          {% else %}
+          <td></td>
+          {% endif %}
+
+
+                   <td data-label="Действия">
+<button class="btn edit"
+  onclick="openDeleteModalFromEdit(this)"
+  data-id="{{ item.id }}">
+ ♻️ Восстановить
+</button>
+</tr>
+    {% endfor %}
+      </tbody>
+    </table>
+
+   <div class="pagination" id="paginationContainer"></div>
+
+
+
+<div id="deleteStudentModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <h2>Восстановить ученика</h2>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" id="deleteStudentId" name="id">
+        <input type="hidden"  name="action" value="delete">
+      <div class="form-row">
+  <input type="number" name="prikaz" placeholder="Номер приказа" required />
+  <span class="input-separator">от</span>
+  <input type="date" name="prikaz_date" placeholder="Дата приказа" required />
+</div>
+
+      <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+        <button type="submit" class="btn primary">✅ Подтвердить</button>
+        <button type="button" class="btn" onclick="closeDeleteModal()">❌ Отмена</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+  <script>
+   function downloadCV(url) {
+  if (!url) return alert('Файл не найден');
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = ''; // Optional: browser decides filename
+  link.click();
+}
+
+
+
+    // Поиск
+    document.getElementById('searchInput').addEventListener('input', function () {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll('#staffTable tbody tr');
+      rows.forEach(row => {
+        const name = row.cells[1].textContent.toLowerCase();
+        const role = row.cells[2].textContent.toLowerCase();
+        row.style.display = (name.includes(filter) || role.includes(filter)) ? '' : 'none';
+      });
+    });
+  </script>
+
+<script>
+  function showFileName(input) {
+    const fileName = input.files[0]?.name;
+    const infoText = input.closest('.file-upload').querySelector('.file-name');
+    if (fileName) {
+      infoText.textContent = "📎 Загружен: " + fileName;
+    } else {
+      infoText.textContent = "";
+    }
+  }
+    function updateFileLabel(input) {
+    const fileName = input.files[0]?.name;
+    const span = input.parentElement.querySelector('span');
+    if (fileName) {
+      span.textContent = `📎 ${fileName}`;
+    } else {
+      span.textContent = span.dataset.default;
+    }
+  }
+</script>
+
+<script>
+  const rowsPerPage = 10; // Customize per your needs
+  const rows = document.querySelectorAll('.staff-row');
+  const pagination = document.getElementById('paginationContainer');
+
+  function displayRows(startIndex) {
+    rows.forEach((row, index) => {
+      row.style.display = (index >= startIndex && index < startIndex + rowsPerPage) ? '' : 'none';
+    });
+  }
+
+  function setupPagination() {
+    const totalPages = Math.ceil(rows.length / rowsPerPage);
+    pagination.innerHTML = '';
+
+    for (let i = 0; i < totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i + 1;
+      btn.className = (i === 0) ? 'active' : '';
+      btn.onclick = () => {
+        document.querySelectorAll('#paginationContainer button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        displayRows(i * rowsPerPage);
+      };
+      pagination.appendChild(btn);
+    }
+  }
+
+  // Initialize
+  displayRows(0);
+  setupPagination();
+</script>
+<script>
+function openDeleteModalFromEdit(button) {
+  const id = button.dataset.id;
+  const modal = document.getElementById('deleteStudentModal');
+  const hiddenInput = document.getElementById('deleteStudentId');
+
+  if (modal && hiddenInput) {
+    hiddenInput.value = id;
+    modal.style.display = 'flex';
+  }
+}
+
+function closeDeleteModal() {
+  const modal = document.getElementById('deleteStudentModal');
+  if (modal) modal.style.display = 'none';
+}
+</script>
+
+</body>
+</html>

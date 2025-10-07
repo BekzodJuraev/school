@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ШколаCRM — Учёт склада</title>
+<style>
+  /* === Your base styles === */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f6fa;
+    color: #222;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background-color: #1e1e2f;
+    width: 240px;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    box-shadow: inset 2px 0 8px #00000055;
+    transition: width 0.3s ease;
+    user-select: none;
+    position: relative;
+  }
+  .sidebar.collapsed {
+    width: 70px;
+  }
+  .sidebar h2 {
+    font-size: 24px;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: white;
+    user-select: text;
+  }
+  .menu {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .menu-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #2a2a40;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 0 8px #00000044;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    user-select: none;
+  }
+  .menu-link:hover {
+    background-color: #3b3b5a;
+    color: #ffcc00;
+  }
+  .menu-link.active {
+    background-color: #4e73df;
+    color: white;
+    box-shadow: 0 0 15px #4e73dfaa;
+  }
+  .sidebar.collapsed .menu-link span.text {
+    display: none;
+  }
+  .menu-link .icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .sidebar-toggle {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4e73df;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    color: white;
+    box-shadow: 0 0 10px #4e73dfaa;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .sidebar-toggle:hover {
+    background-color: #3563c6;
+    box-shadow: 0 0 20px #5a8bffcc;
+  }
+
+  /* Main wrapper */
+  .main-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    padding: 2.5rem 3rem;
+    color: #222;
+    position: relative;
+  }
+
+  /* Top bar */
+  header.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+  }
+  header.top-bar h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #4e73df;
+  }
+  .user-info {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #666;
+    user-select: none;
+  }
+
+  /* Summary cards grid */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  .summary-card {
+    background-color: #4e73df;
+    border-radius: 16px;
+    padding: 2rem;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 15px #4e73df88;
+    cursor: default;
+    user-select: none;
+    transition: box-shadow 0.3s ease;
+  }
+  .summary-card:hover {
+    box-shadow: 0 8px 30px #4e73dfcc;
+  }
+  .summary-title {
+    font-weight: 700;
+    font-size: 1.4rem;
+    margin-bottom: 0.8rem;
+  }
+  .summary-value {
+    font-weight: 900;
+    font-size: 3.5rem;
+    letter-spacing: 0.06em;
+  }
+  .summary-unit {
+    font-weight: 700;
+    font-size: 1.6rem;
+    margin-left: 0.3rem;
+  }
+
+  /* Tabs nav */
+  .tabs {
+    display: flex;
+    border-bottom: 3px solid #4e73df;
+    margin-bottom: 2rem;
+  }
+  .tabs button {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 1.2rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 4px solid transparent;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    user-select: none;
+  }
+  .tabs button.active,
+  .tabs button:hover:not(:disabled) {
+    color: #4e73df;
+    border-bottom-color: #4e73df;
+  }
+  .tabs button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* Tab content */
+  .tab-content {
+    display: none;
+    animation: fadeIn 0.35s ease forwards;
+  }
+  .tab-content.active {
+    display: block;
+  }
+  @keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 16px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  thead tr th {
+    background: #4e73df;
+    color: white;
+    padding: 1rem 1.8rem;
+    font-weight: 700;
+    text-align: left;
+    user-select: none;
+  }
+  tbody tr {
+    background: #f9f9f9;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+  }
+  tbody tr:hover {
+    background: #e2eaff;
+  }
+  tbody tr td {
+    padding: 1rem 1.5rem;
+    vertical-align: middle;
+    color: #333;
+  }
+  tbody tr td img {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .btn.edit {
+    background-color: #36b9cc;
+    color: white;
+    margin-right: 0.5rem;
+    box-shadow: 0 0 8px #36b9ccaa;
+  }
+  .btn.edit:hover {
+    background-color: #2a9db0;
+    box-shadow: 0 0 15px #2a9db0cc;
+  }
+  .btn.delete {
+    background-color: #e74a3b;
+    color: white;
+    box-shadow: 0 0 8px #e74a3bcc;
+  }
+  .btn.delete:hover {
+    background-color: #c0392b;
+    box-shadow: 0 0 15px #c0392bcc;
+  }
+
+  /* Floating add button */
+  .btn-add-floating {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    background-color: #4e73df;
+    border: none;
+    color: white;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 32px;
+    font-weight: 700;
+    box-shadow: 0 0 20px #4e73dfcc;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-add-floating:hover {
+    background-color: #3563c6;
+    box-shadow: 0 0 30px #5a8bffcc;
+  }
+
+  /* Notifications form */
+  form.notifications-form {
+    max-width: 600px;
+    background: white;
+    padding: 2rem 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 0 20px #4e73df44;
+    user-select: none;
+  }
+  form.notifications-form h3 {
+    font-weight: 700;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #4e73df;
+  }
+  form.notifications-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    color: #555;
+  }
+  form.notifications-form input[type=number] {
+    width: 100%;
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    border: 1px solid #ccc;
+    font-weight: 600;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    color: #333;
+    box-shadow: inset 0 0 8px #4e73df44;
+    transition: box-shadow 0.3s ease;
+  }
+  form.notifications-form input[type=number]:focus {
+    outline: none;
+    box-shadow: inset 0 0 12px #4e73dfcc;
+  }
+  form.notifications-form button {
+    margin-top: 1.8rem;
+    width: 100%;
+    background: #4e73df;
+    border: none;
+    padding: 1.2rem 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: white;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 0 25px #4e73dfcc;
+    transition: background-color 0.3s ease;
+  }
+  form.notifications-form button:hover {
+    background-color: #3563c6;
+  }
+
+  /* Modal overlay */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+  }
+  .modal.active {
+    display: flex;
+  }
+  .modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    max-width: 500px;
+    width: 90vw;
+    box-shadow: 0 0 25px #4e73dfaa;
+    position: relative;
+    user-select: text;
+  }
+  .modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #4e73df;
+    font-weight: 700;
+  }
+  .modal-content label {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    color: #444;
+  }
+  .modal-content input[type=text],
+  .modal-content input[type=number],
+  .modal-content select {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.2rem;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    color: #222;
+    box-shadow: inset 0 0 8px #4e73df44;
+    transition: box-shadow 0.3s ease;
+  }
+  .modal-content input[type=text]:focus,
+  .modal-content input[type=number]:focus,
+  .modal-content select:focus {
+    outline: none;
+    box-shadow: inset 0 0 12px #4e73dfcc;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  .modal-actions button {
+    padding: 0.6rem 1.6rem;
+    font-weight: 700;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .modal-actions .btn-cancel {
+    background: #ddd;
+    color: #555;
+  }
+  .modal-actions .btn-cancel:hover {
+    background: #ccc;
+  }
+  .modal-actions .btn-primary {
+    background: #4e73df;
+    color: white;
+    box-shadow: 0 0 15px #4e73dfaa;
+  }
+  .modal-actions .btn-primary:hover {
+    background: #3563c6;
+  }
+  /* Responsive */
+  @media (max-width: 900px) {
+    .summary-grid {
+      grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
+    }
+  }
+  @media (max-width: 700px) {
+    body {
+      flex-direction: column;
+    }
+    .sidebar {
+      width: 100%;
+      height: 60px;
+      padding: 0 1rem;
+      flex-direction: row;
+      align-items: center;
+      box-shadow: inset 0 -2px 10px #00000022;
+    }
+    .sidebar.collapsed {
+      width: 100%;
+    }
+    .sidebar h2 {
+      display: none;
+    }
+    .menu {
+      flex-direction: row;
+      gap: 0.5rem;
+      width: 100%;
+      justify-content: space-around;
+    }
+    .menu-link {
+      flex: 1;
+      justify-content: center;
+      padding: 0.6rem 0;
+      font-size: 0.9rem;
+      border-radius: 12px 12px 0 0;
+    }
+    .sidebar-toggle {
+      display: none;
+    }
+    header.top-bar {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .main-wrapper {
+      padding: 1rem 1.5rem;
+    }
+    table, thead, tbody, th, td, tr {
+      display: block;
+      width: 100%;
+    }
+    thead tr th {
+      display: none;
+    }
+    tbody tr {
+      margin-bottom: 1.5rem;
+      border-radius: 12px;
+      background: #f9f9f9;
+      padding: 1rem;
+    }
+    tbody tr td {
+      padding-left: 50%;
+      position: relative;
+      text-align: right;
+    }
+    tbody tr td::before {
+      content: attr(data-label);
+      position: absolute;
+      left: 1rem;
+      width: 45%;
+      font-weight: 700;
+      color: #555;
+      text-align: left;
+    }
+    tbody tr td img {
+      margin: 0 0 0 auto;
+      display: block;
+    }
+  }
+  .modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar" aria-label="Навигация по сайту">
+  <h2>🏫 ШколаCRM</h2>
+  <nav class="menu" aria-label="Главное меню">
+  <a href="{% url 'dashboard' %}" class="menu-link" > 🏠 Панель</a>
+       {% if request.user.profile.position == 'admin' %}
+      <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+       <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
+        <a href="{% url 'discount' %}" class="menu-link ">💸 Скидки</a>
+         <a href="{% url 'warehouse' %}" class="menu-link  active ">📁 Склад</a>
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+
+      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+     <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+     {% elif request.user.profile.position == 'supplier' %}
+      <a href="{% url 'warehouse' %}" class="menu-link  active ">📁 Склад</a>
+         <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+
+      {% endif %}
+
+  </nav>
+  <button class="sidebar-toggle" aria-label="Свернуть меню" id="sidebarToggle">⇤</button>
+</aside>
+
+<!-- Main content -->
+<div class="main-wrapper" role="main">
+  <header class="top-bar">
+    <h1>Учёт склада школы</h1>
+    <div class="user-info" aria-label="Пользователь: Иван Иванов">{{request.user.profile.lastname}} {{request.user.profile.name}}</div>
+  </header>
+
+  <!-- Summary cards -->
+
+
+
+  <!-- Tabs -->
+  <nav class="tabs" role="tablist" aria-label="Переключение между разделами">
+    <button role="tab" aria-selected="true" aria-controls="inventory-tab" id="tabInventory" class="active">Склад</button>
+    <button role="tab" aria-selected="false" aria-controls="invoices-tab" id="tabInvoices">Накладные</button>
+    <button role="tab" aria-selected="false" aria-controls="history-tab" id="tabHistory">История</button>
+
+  </nav>
+
+  <!-- Tab contents -->
+
+  <!-- Inventory tab -->
+  <section id="inventory-tab" class="tab-content active" role="tabpanel" aria-labelledby="tabInventory" tabindex="0">
+  <table aria-label="Товары на складе" id="inventoryTable">
+    <thead>
+      <tr>
+        <th scope="col">Название</th>
+        <th scope="col">Категория</th>
+        <th scope="col">Остаток</th>
+        <th scope="col">Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for item in warehouse %}
+    <tr data-id="{{item.pk}}">
+  <td data-label="Название" id="name-{{item.pk}}">{{item.name}}</td>
+  <td id="category-{{item.pk}}">{{item.categories}}</td>
+  <td id="stock-{{item.pk}}">{{item.quantity}}</td>
+
+  <td>
+    <button class="btn edit" data-id="{{item.pk}}">✏️</button>
+    <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
+  </td>
+</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <button class="btn-add-floating" aria-label="Добавить товар" id="addItemBtn">＋</button>
+</section>
+
+  <!-- Invoices tab -->
+  <section id="invoices-tab" class="tab-content" role="tabpanel" aria-labelledby="tabInvoices" tabindex="0">
+    <table aria-label="Накладные" id="invoicesTable">
+      <thead>
+        <tr>
+          <th scope="col">Товар</th>
+          <th scope="col">Дата</th>
+          <th scope="col">Тип</th>
+          <th scope="col">Кол-во позиций</th>
+          <th scope="col">Цена за ед, (USZ) </th>
+          <th scope="col">Общая сумма,(USZ) </th>
+          <th scope="col">Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+       {% for item in invoice %}
+        <tr data-id="{{item.pk}}">
+          <td data-label="№ накладной">{{item.warehouse.name}}</td>
+          <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
+          <td data-label="Тип">{{item.type_invoice}}</td>
+          <td data-label="Кол-во позиций">{{item.quantity}}</td>
+          {% if item.type_invoice == 'Приход' %}
+           <td data-label="Цена">{{item.price}}</td>
+          <td data-label="Общая сумма, ₽">{{item.total|floatformat:2}}</td>
+          {% else %}
+          <td data-label="Цена">-</td>
+          <td data-label="Общая сумма, ₽">-</td>
+          {% endif %}
+          <td data-label="Действия">
+            <button class="btn edit" aria-label="Просмотр накладной 00123">👁️</button>
+           <!-- <button class="btn delete" aria-label="Удалить накладную 00123">🗑️</button> -->
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+     <button class="btn-add-floating" aria-label="Добавить товар" id="addInvoiceBtn">＋</button>
+  </section>
+
+  <!-- History tab -->
+  <section id="history-tab" class="tab-content" role="tabpanel" aria-labelledby="tabHistory" tabindex="0">
+    <table aria-label="История перемещений товаров" id="historyTable">
+      <thead>
+        <tr>
+          <th scope="col">Дата</th>
+          <th scope="col">Товар</th>
+          <th scope="col">Откуда</th>
+          <th scope="col">Куда</th>
+          <th scope="col">Кол-во</th>
+          <th scope="col">Примечание</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in invoice %}
+        <tr>
+          <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
+          <td data-label="Товар">{{item.warehouse.name}}</td>
+          <td data-label="Откуда">{{item.where}}</td>
+          <td data-label="Куда">{{item.to}}</td>
+          <td data-label="Кол-во">{{item.quantity}}</td>
+          <td data-label="Комментарий">{{item.comment|default:""}}</td>
+        </tr>
+      {% endfor %}
+
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Notifications tab -->
+
+</div>
+
+<!-- Modals -->
+
+<!-- Add/Edit Item Modal -->
+<div class="modal" id="itemModal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle" tabindex="-1">
+  <div class="modal-content">
+    <h2 id="itemModalTitle">Добавить товар</h2>
+    <form id="itemForm" method="POST">
+           {% csrf_token %}
+      <label for="itemName">Название товара</label>
+      <input type="text" id="itemName" name="name" required />
+       <input type="hidden" id="itemPk" name="pk" value="">
+
+      <label for="itemCategory">Категория</label>
+      <select id="itemCategory" name="category" required>
+        <option value="">Выберите категорию</option>
+        <option value="Школьные принадлежности">Школьные принадлежности</option>
+        <option value="Мебель">Мебель</option>
+        <option value="Оборудование">Оборудование</option>
+        <option value="Хозтовары">Хозтовары</option>
+      </select>
+
+
+      <input id="action" name="action"  value="add" hidden>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" id="cancelItemBtn">Отмена</button>
+        <button type="submit" class="btn btn-primary" id="saveItemBtn">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<div class="modal" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" tabindex="-1">
+  <div class="modal-content">
+    <form method="POST" >
+      {% csrf_token %}
+      <h2 id="deleteModalTitle">Удалить товар?</h2>
+      <p id="deleteItemName" style="font-weight:600; margin-bottom: 1.5rem;"></p>
+
+      <!-- Hidden inputs -->
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="pk" id="deleteItemPk" value="">
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" id="cancelDeleteBtn">Отмена</button>
+        <button type="submit" class="btn btn-primary">Удалить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="invoiceModal" role="dialog" aria-modal="true" aria-labelledby="invoiceModalTitle" tabindex="-1">
+  <div class="modal-content">
+     <button type="button" class="modal-close" id="cancelInvoiceBtn">×</button>
+    <h2 id="invoiceModalTitle">Добавить накладную</h2>
+    <form id="invoiceForm" method="POST">
+      {% csrf_token %}
+
+      <label for="invoiceProduct">Товар</label>
+      <select id="invoiceProduct" name="warehouse" required>
+        <option value="">Выберите товар</option>
+        {% for product in warehouse %}
+          <option value="{{ product.pk }}" data-name="{{ product.name }}" data-quantity="{{ product.quantity }}">{{ product.name }}</option>
+        {% endfor %}
+      </select>
+
+      <input type="hidden" id="invoicePk" name="pk" value="">
+      <input type="hidden" id="invoiceAction" name="action" value="add_invoice">
+
+      <label for="invoiceType">Тип</label>
+      <select id="invoiceType" name="type_invoice" required>
+        <option value="">Выберите тип</option>
+        <option value="Приход">Приход</option>
+        <option value="Расход">Расход</option>
+      </select>
+
+      <label for="invoicePositions">Кол-во позиций</label>
+      <input type="number" id="invoicePositions" name="quantity" min="1" step="1" required />
+      <div id="priceField" style="display:none;">
+      <label for="itemPrice">Цена за единицу (USZ)</label>
+      <input type="number" id="itemPrice" name="price" min="0" step="1" required />
+      </div>
+      <!-- Extra fields for "Расход" -->
+      <div id="expenseFields" style="display:none;">
+        <label for="invoiceDestination">Куда</label>
+        <select id="invoiceDestination" name="to">
+          <option value="">Выберите получателя</option>
+          <option value="Кухня">Кухня</option>
+          <option value="Другое">Другое</option>
+
+        </select>
+
+        <label for="invoiceNote">Примечание</label>
+        <input type="text" id="invoiceNote" name="note" />
+      </div>
+
+      <div class="modal-actions" id="modal-actions_invoice">
+        <button type="submit" class="btn btn-primary" id="saveInvoiceBtn">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<script>
+
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebarToggle');
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+  });
+
+
+  const tabs = document.querySelectorAll('.tabs button');
+  const tabContents = document.querySelectorAll('.tab-content');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      tabContents.forEach(tc => tc.classList.remove('active'));
+
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+
+      const target = tab.getAttribute('aria-controls');
+      document.getElementById(target).classList.add('active');
+    });
+  });
+
+  // Modal and form variables
+  const itemModal = document.getElementById('itemModal');
+  const deleteModal = document.getElementById('deleteModal');
+
+  const addItemBtn = document.getElementById('addItemBtn');
+  const cancelItemBtn = document.getElementById('cancelItemBtn');
+  const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+  const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+  const itemForm = document.getElementById('itemForm');
+  const itemModalTitle = document.getElementById('itemModalTitle');
+  const deleteItemName = document.getElementById('deleteItemName');
+
+  let editingRow = null;
+
+  // Open Add Item modal
+  addItemBtn.addEventListener('click', () => {
+    editingRow = null;
+    itemModalTitle.textContent = 'Добавить товар';
+    itemForm.reset();
+    openModal(itemModal);
+  });
+
+  // Cancel Add/Edit modal
+  cancelItemBtn.addEventListener('click', () => {
+    closeModal(itemModal);
+  });
+
+  // Cancel Delete modal
+  cancelDeleteBtn.addEventListener('click', () => {
+    closeModal(deleteModal);
+  });
+
+  // Handle edit buttons
+document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const pk = btn.getAttribute('data-id'); // get the item's PK
+    const tr = btn.closest('tr');
+    editingRow = tr;
+
+    itemModalTitle.textContent = 'Редактировать товар';
+
+    // Fill form with current values using unique IDs
+    itemForm.name.value = document.getElementById(`name-${pk}`).textContent;
+    itemForm.category.value = document.getElementById(`category-${pk}`).textContent;
+
+    itemForm.price.value = parseFloat(
+      document.getElementById(`price-${pk}`).textContent.replace(/[^0-9.]/g, '')
+    );
+    openModal(itemModal);
+  });
+});
+
+
+document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const pk = btn.getAttribute('data-id');
+    const tr = btn.closest('tr');
+
+    itemModalTitle.textContent = 'Редактировать товар';
+    document.getElementById('action').value = 'edit';
+    document.getElementById('itemPk').value = pk;
+
+    // Fill form fields
+    itemForm.name.value = document.getElementById(`name-${pk}`).textContent;
+    itemForm.category.value = document.getElementById(`category-${pk}`).textContent;
+
+    itemForm.price.value = parseFloat(
+      document.getElementById(`price-${pk}`).textContent.replace(/[^0-9.]/g, '')
+    );
+
+    openModal(itemModal);
+  });
+});
+
+
+
+
+  // Confirm delete
+
+
+  // Helpers to open/close modals
+  function openModal(modal) {
+    modal.classList.add('active');
+    modal.focus();
+  }
+  function closeModal(modal) {
+    modal.classList.remove('active');
+  }
+
+  // Handle dynamic buttons for new rows
+  function onEditClick(e) {
+    const tr = e.target.closest('tr');
+    editingRow = tr;
+    itemModalTitle.textContent = 'Редактировать товар';
+    itemForm.name.value = tr.querySelector('td[data-label="Название"]').textContent;
+    openModal(itemModal);
+  }
+function onDeleteClick(e) {
+  const tr = e.target.closest('tr');
+  editingRow = tr;
+  const pk = tr.getAttribute('data-id'); // <-- take from <tr> or button
+  document.getElementById('deleteItemPk').value = pk;
+
+  deleteItemName.textContent = `Вы уверены, что хотите удалить товар "${tr.querySelector('td[data-label="Название"]').textContent}"?`;
+
+  openModal(deleteModal);
+}
+
+  // Attach dynamic listeners for initial buttons
+  document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
+    btn.addEventListener('click', onEditClick);
+  });
+  document.querySelectorAll('#inventoryTable .btn.delete').forEach(btn => {
+    btn.addEventListener('click', onDeleteClick);
+  });
+
+</script>
+
+<script>
+const invoiceModal = document.getElementById('invoiceModal');
+const cancelInvoiceBtn = document.getElementById('cancelInvoiceBtn');
+const invoiceTypeSelect = document.getElementById('invoiceType');
+const expenseFields = document.getElementById('expenseFields');
+const priceFields = document.getElementById('priceField');
+const modalActions = document.getElementById('modal-actions_invoice'); // ✅
+
+// Cancel button closes modal
+cancelInvoiceBtn.addEventListener('click', () => {
+  closeModal(invoiceModal);
+});
+
+// Show/hide "Расход" extra fields
+invoiceTypeSelect.addEventListener('change', () => {
+  if (invoiceTypeSelect.value === 'Расход') {
+    expenseFields.style.display = 'block';
+    priceFields.style.display = 'none';
+    document.getElementById('itemPrice').removeAttribute('required');
+  } else {
+    expenseFields.style.display = 'none';
+    priceFields.style.display = 'block';
+    document.getElementById('itemPrice').setAttribute('required', 'required');
+  }
+});
+
+// Add Invoice button (open modal for add)
+document.getElementById('addInvoiceBtn').addEventListener('click', () => {
+  document.getElementById('invoiceModalTitle').textContent = 'Добавить накладную';
+  document.getElementById('invoiceAction').value = 'add_invoice';
+  document.getElementById('invoicePk').value = '';
+
+  // Сброс формы
+  invoiceForm.reset();
+
+  // Дополнительно явно очищаем (чтобы не остались из edit)
+  document.getElementById('invoiceProduct').selectedIndex = -1;
+  document.getElementById('invoiceType').value = '';
+  document.getElementById('invoicePositions').value = '';
+
+  expenseFields.style.display = 'none';
+  modalActions.style.display = 'flex';
+
+  // Ре-энейблим
+  document.getElementById('invoiceProduct').disabled = false;
+  document.getElementById('invoiceType').disabled = false;
+  document.getElementById('invoicePositions').disabled = false;
+
+  openModal(invoiceModal);
+});
+
+// Edit Invoice button (fill form with data)
+document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tr = btn.closest('tr');
+    const pk = tr.dataset.id;
+
+    document.getElementById('invoiceModalTitle').textContent = 'Просмотр накладной';
+    document.getElementById('invoiceAction').value = 'edit_invoice';
+    document.getElementById('invoicePk').value = pk;
+    let name = tr.querySelector('td[data-label="№ накладной"]').textContent.trim();
+    let select = document.getElementById('invoiceProduct');
+
+    for (let option of select.options) {
+      if (option.dataset.name === name) {
+        option.selected = true;
+        break;
+      }
+    }
+    document.getElementById('invoiceType').value = tr.querySelector('td[data-label="Тип"]').textContent;
+    document.getElementById('invoicePositions').value = tr.querySelector('td[data-label="Кол-во позиций"]').textContent;
+    document.getElementById('itemPrice').value=tr.querySelector('td[data-label="Цена"]').textContent;
+
+    // Show expense fields if type is "Расход"
+    if (document.getElementById('invoiceType').value === 'Расход') {
+      expenseFields.style.display = 'block';
+      priceFields.style.display = 'none';
+    } else {
+      expenseFields.style.display = 'none';
+      priceFields.style.display = 'block';
+    }
+    document.getElementById('invoiceProduct').disabled = true;
+    document.getElementById('invoiceType').disabled = true;
+    document.getElementById('invoicePositions').disabled = true;
+    document.getElementById('itemPrice').disabled = true;
+    // Скрываем кнопки действий (сохранить/отмена)
+    modalActions.style.display = 'none';
+    document.getElementById('cancelInvoiceBtn').style.display = 'block';
+
+    openModal(invoiceModal);
+  });
+});
+
+</script>
+
+<script>
+document.getElementById("invoiceForm").addEventListener("submit", function(e) {
+    const type = document.getElementById("invoiceType").value; // Приход / Расход
+    const productSelect = document.getElementById("invoiceProduct");
+    const quantityInput = document.getElementById("invoicePositions");
+    const quantity = parseInt(quantityInput.value || 0);
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
+
+    // Only check stock if type is "Расход"
+    if (type === "Расход") {
+        const availableStock = parseInt(selectedOption.dataset.quantity || 0);
+
+        if (quantity > availableStock) {
+            e.preventDefault(); // prevent form submit
+            alert(`Недостаточно товара на складе!\nТовар: ${selectedOption.dataset.name}\nДоступно: ${availableStock}`);
+            return false;
+        }
+    }
+    // Приход → no check, allow submit
+});
+
+</script>
+</body>
+</html>
