@@ -786,7 +786,7 @@ top-bar {
     required
     autocomplete="off"
   />
-
+  <input type="hidden" id="itemPk" name="pk" value="">
   <ul id="results" class="student-results"></ul>
 
   <!-- скрытые поля для backend -->
@@ -872,7 +872,7 @@ top-bar {
     <div class="totals">
       <p><strong>Итого оплачено:</strong> <span id="moreTotalPayments">0</span></p>
       <p><strong>Итого начисление:</strong> <span id="moreTotalDebts">0</span></p>
-      <p><strong>Итого долги:</strong> <span id="moreBalance">0</span></p>
+      <p> <span id="moreBalance">0</span></p>
     </div>
 
     <div class="modal-actions">
@@ -893,7 +893,6 @@ document.getElementById("itemForm").addEventListener("submit", function (e) {
 
   printCheque()
     .then(() => {
-      console.log("Print done, submitting form...");
       form.submit(); // ✅ submit form after printing
     })
     .catch(err => {
@@ -932,6 +931,13 @@ document.querySelectorAll(".btn.more").forEach(btn => {
       document.getElementById("moreTotalDebts").textContent = data.total_debts.toLocaleString("ru-RU");
       document.getElementById("moreBalance").textContent = data.balance.toLocaleString("ru-RU");
 
+      if (data.balance < 0) {
+        moreBalance.innerHTML = `<strong>Предоплата:</strong> ${Math.abs(data.balance).toLocaleString("ru-RU")}`;
+      } else {
+        moreBalance.innerHTML = `<strong>Долги:</strong> ${data.balance.toLocaleString("ru-RU")}`;
+      }
+
+
       // Показать модалку
       document.getElementById("moreModal").classList.add("active");
 
@@ -951,13 +957,15 @@ document.getElementById("closeMoreBtn").addEventListener("click", () => {
   document.querySelectorAll(".btn.edit").forEach(btn => {
   btn.addEventListener("click", function () {
     const tr = this.closest("tr");
-
+    const pk = btn.getAttribute('data-id');
     // Заполняем форму модалки
     document.getElementById("studentInput").value = tr.dataset.student;
     document.getElementById("studentId").value = tr.dataset.studentid;
     document.getElementById("studentClass").value = tr.dataset.studentclass;
 
     document.getElementById("itemCategory").value = tr.dataset.type;
+    itemModalTitle.textContent = 'Редактировать оплату'
+    document.getElementById('itemPk').value = pk;
 
     // сумма (raw + красивый вывод)
     const sum = tr.dataset.sum;
@@ -1096,7 +1104,7 @@ const addItemBtn = document.getElementById('addPaymentBtn');
 </script>
 
 <script>
-    const sidebar = document.getElementById('sidebar');
+  const sidebar = document.getElementById('sidebar');
   const toggleBtn = document.getElementById('sidebarToggle');
   toggleBtn.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
@@ -1207,7 +1215,7 @@ WvYgHDIvkdP/dA==
         'Thank you!\r\n\r\n\r\n\f'
       ];
 
-      return qz.print(config, data); // return this Promise
+      return qz.print(config, data);
     })
     .then(() => console.log("✅ Print complete"))
     .catch(err => console.error("❌ Print error:", err));

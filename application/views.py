@@ -392,12 +392,17 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       sum=request.POST.get('sum')
       student_pk=request.POST.get('student_id')
       transaction_type="payment"
+
       pk=request.POST.get('pk')
+
       if action == "payment":
          Payment.objects.create(sum=sum,type_of_payment=type_of_payment,transaction_type=transaction_type,student_id=student_pk)
 
       elif action == "delete":
          Payment.objects.filter(pk=pk).delete()
+
+      elif action == "edit":
+         Payment.objects.filter(pk=pk).update(sum=sum)
 
 
 
