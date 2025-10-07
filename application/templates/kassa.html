@@ -4,7 +4,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qz-tray/2.1.0/qz-tray.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.5/qz-tray.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsrsasign"></script>
 <title>ШколаCRM — Касса</title>
 <style>
   /* === Your base styles === */
@@ -881,13 +882,24 @@ top-bar {
 </div>
 <script>
 document.getElementById("itemForm").addEventListener("submit", function (e) {
-  const studentId = document.getElementById("studentId").value;
+  e.preventDefault(); // stop default submit until print finishes
+  const form = this;  // save reference to the form
 
+  const studentId = document.getElementById("studentId").value;
   if (!studentId) {
-    e.preventDefault(); // block submission
     alert("Ошибка: студент не выбран!");
-    return false;
+    return;
   }
+
+  printCheque()
+    .then(() => {
+      console.log("Print done, submitting form...");
+      form.submit(); // ✅ submit form after printing
+    })
+    .catch(err => {
+      console.error("Print failed, submitting anyway:", err);
+      form.submit(); // submit even if printing fails
+    });
 });
 </script>
 <script>
@@ -1128,5 +1140,78 @@ document.getElementById('searchInput').addEventListener('input', function () {
   });
 });
 </script>
+  <script>
+    qz.security.setCertificatePromise(function(resolve, reject) {
+      resolve(`-----BEGIN CERTIFICATE-----
+MIIC+jCCAmOgAwIBAgIBADANBgkqhkiG9w0BAQ0FADCBmDELMAkGA1UEBhMCdXox
+EjAQBgNVBAgMCVNhbWFya2FuZDESMBAGA1UECgwJU2FtYXJrYW5kMRIwEAYDVQQD
+DAlTYW1hcmthbmQxEzARBgNVBAcMClNhbWFya2FuZHYxEjAQBgNVBAsMCVNhbWFy
+a2FuZDEkMCIGCSqGSIb3DQEJARYVcG93ZXJ6dmVyOThAZ21haWwuY29tMCAXDTI1
+MTAwNzA2NTQ0N1oYDzIwNTMwMjIyMDY1NDQ3WjCBmDELMAkGA1UEBhMCdXoxEjAQ
+BgNVBAgMCVNhbWFya2FuZDESMBAGA1UECgwJU2FtYXJrYW5kMRIwEAYDVQQDDAlT
+YW1hcmthbmQxEzARBgNVBAcMClNhbWFya2FuZHYxEjAQBgNVBAsMCVNhbWFya2Fu
+ZDEkMCIGCSqGSIb3DQEJARYVcG93ZXJ6dmVyOThAZ21haWwuY29tMIGfMA0GCSqG
+SIb3DQEBAQUAA4GNADCBiQKBgQC9VSrQnczBbJzn4PsHONhsHxPlpOy7EeHdk/GD
+APjWGeFh+cEk69dYRsTmfvmzEWXbrNEEDD/WqptcsbxjT1kDhKNCCr5BsGjPA7Pd
+tkTybRotOdTy0D3gqfXmIlL9/oH/DzKK+N34kvP9BGYq8crNA8kp41Ig7V6nIXfR
+9HOkZwIDAQABo1AwTjAdBgNVHQ4EFgQUvzSzbTuHO92CcsSJ/OtVQCedXS4wHwYD
+VR0jBBgwFoAUvzSzbTuHO92CcsSJ/OtVQCedXS4wDAYDVR0TBAUwAwEB/zANBgkq
+hkiG9w0BAQ0FAAOBgQB0QvwLKEAActxA4Jrwpz2kQIy5OWVJlg9yH+YuGpGkL1C0
+NDIqbiCkdbaPx87FMVsq8rjco+gp442eM2uf+pR9qtzjuevD01n5tRosI57G8OXC
+NrEfoYazdp/StSNXuIxlFmwhoe2b6UNN+5/yCxB8ATX9Qn5wxgBrgU9sRuuSpA==
+-----END CERTIFICATE-----`);
+    });
+
+    qz.security.setSignaturePromise(function(toSign) {
+      return function(resolve, reject) {
+        var pk = `-----BEGIN PRIVATE KEY-----
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAL1VKtCdzMFsnOfg
++wc42GwfE+Wk7LsR4d2T8YMA+NYZ4WH5wSTr11hGxOZ++bMRZdus0QQMP9aqm1yx
+vGNPWQOEo0IKvkGwaM8Ds922RPJtGi051PLQPeCp9eYiUv3+gf8PMor43fiS8/0E
+Zirxys0DySnjUiDtXqchd9H0c6RnAgMBAAECgYBL3FsaWY/YFH/N/Pw4CZPVxqH/
+SpS7489fK88CEZqilp4S1rKH66NOMJTmUgwUrqzkVxsshwfxKEy12FVGaV2ddVvA
+Qo5xdoOSRIerbIt4JVtujDZ5yzzal0+0trCkM6S6FUszoUqfVmRBvzX+UvcD8+IJ
+nWZg1xuGmlcduBjZWQJBAOzPIyVRXSROxoOwNzp+bc0gqeDIcHbm5kryu9OzPYfM
+Z59B7D9Dt7OvqbC0As+lTeSEJ8uAZRA5TTxSmUJb0MsCQQDMrRRav4kBFH908yBL
+rzsKdTC37SCALHHTEl+e6eTxG/WI54jfYypLEONiSHPVx2jOvhsa1PBeEElLNfhA
+oNNVAkBQEno/1BM6g6h8Pslt7fISuki2yQ++JLUaApmgK6tSj7s6DoBjo/Ipv+wQ
+481PiQWdj1IlbXS+16FWFFfeKE2hAkA+rtcn/7bOvN9YCsmeRDk5t7BG8/lbJ8Fo
+Wh0sxwcVjHGDDx3NBErEmJR62iOXmi2P+4rDielfdW9s+EdiS57NAkEAwonRilTE
+l6HHBGeFxiy8h8iEZpt80Zf0SN8lpMgeu5A5X3gIx0yh1BaYrAK+iefMmm/r6832
+WvYgHDIvkdP/dA==
+-----END PRIVATE KEY-----`;
+
+        var sign = new KJUR.crypto.Signature({"alg": "SHA1withRSA"});
+        sign.init(pk);
+        sign.updateString(toSign);
+        var hex = sign.sign();
+        resolve(stob64(hextorstr(hex)));
+      };
+    });
+
+    function printCheque() {
+  return qz.websocket.connect()  // <-- return the Promise
+    .then(() => qz.printers.find("EPSON L3100 Series"))
+    .then(printer => {
+      var config = qz.configs.create(printer, {
+        encoding: 'utf-8',
+        endOfDoc: '\x0c',
+        perSpool: true
+      });
+
+      var data = [
+        '*** CHEQUE RECEIPT ***\r\n',
+        'Amount: $100.00\r\n',
+        'Date: 2025-10-07\r\n',
+        '----------------------\r\n',
+        'Thank you!\r\n\r\n\r\n\f'
+      ];
+
+      return qz.print(config, data); // return this Promise
+    })
+    .then(() => console.log("✅ Print complete"))
+    .catch(err => console.error("❌ Print error:", err));
+}
+  </script>
 </body>
 </html>
