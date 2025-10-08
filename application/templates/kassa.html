@@ -881,6 +881,30 @@ top-bar {
   </div>
 </div>
 <script>
+function filterTable() {
+  const startDate = document.getElementById("startDate").value
+    ? new Date(document.getElementById("startDate").value)
+    : null;
+  const endDate = document.getElementById("endDate").value
+    ? new Date(document.getElementById("endDate").value)
+    : null;
+
+  const rows = document.querySelectorAll("#paymentsTable tbody tr");
+
+  rows.forEach(row => {
+    const dateText = row.querySelector('[data-label="Дата"]').textContent.trim();
+    const [day, month, year] = dateText.split(".");
+    const rowDate = new Date(`${year}-${month}-${day}`);
+
+    let visible = true;
+    if (startDate && rowDate < startDate) visible = false;
+    if (endDate && rowDate > endDate) visible = false;
+
+    row.style.display = visible ? "" : "none";
+  });
+}
+</script>
+<script>
 document.getElementById("itemForm").addEventListener("submit", function (e) {
   e.preventDefault(); // stop default submit until print finishes
   const form = this;  // save reference to the form
