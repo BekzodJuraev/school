@@ -601,6 +601,122 @@ top-bar {
 #results li:hover {
   background: #f3f6ff;
 }
+    .class-section {
+      margin-bottom: 1.8rem;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .class-title {
+      background: linear-gradient(135deg, #007bff, #0056d6);
+      color: #fff;
+      padding: 16px 20px;
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      letter-spacing: 0.3px;
+      transition: background 0.3s ease;
+    }
+
+    .class-title:hover {
+      background: linear-gradient(135deg, #0068e0, #004fc1);
+    }
+
+    .class-title::after {
+      content: "▸";
+      transition: transform 0.3s ease;
+      font-size: 1.2rem;
+      opacity: 0.8;
+    }
+
+    .class-section.active .class-title::after {
+      transform: rotate(90deg);
+    }
+
+    .payments-wrapper {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+
+    .class-section.active .payments-wrapper {
+      max-height: 1000px; /* enough for all rows */
+    }
+
+    .payments-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      transition: background 0.2s;
+    }
+
+    th {
+      background: #f9fafb;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    tr:hover td {
+      background: #f5f9ff;
+    }
+
+    .btn-add-floating {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: linear-gradient(135deg, #28a745, #1e8e3e);
+      color: #fff;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 24px;
+      cursor: pointer;
+      margin: 15px;
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+      float: right;
+    }
+
+    .btn-add-floating:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(40, 167, 69, 0.5);
+    }
+
+    .btn.more {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      transition: transform 0.2s ease;
+    }
+
+    .btn.more:hover {
+      transform: scale(1.2);
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
 </style>
 </head>
@@ -614,7 +730,8 @@ top-bar {
        {% if request.user.profile.position == 'admin' %}
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
       {% endif %}
-      <a href="{% url 'kassa' %}" class="menu-link  active ">📊 Касса</a>
+    <a href="{% url 'report' %}" class="menu-link active">📈 Отчет</a>
+      <a href="{% url 'kassa' %}" class="menu-link ">📊 Касса</a>
         <a href="{% url 'discount' %}" class="menu-link ">💸 Скидки</a>
          <a href="{% url 'warehouse' %}" class="menu-link">📁 Склад</a>
       <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
@@ -630,25 +747,7 @@ top-bar {
 <div class="main-wrapper" role="main">
   <header class="top-bar">
     <h1>Касса и оплата</h1>
-    <div class="user-info" aria-label="Пользователь: Иван Иванов">
-      {{request.user.profile.lastname}} {{request.user.profile.name}}
-    </div>
-  </header>
-    <section class="summary-grid" aria-label="Общее количество товаров по категориям">
-    <article class="summary-card" tabindex="0" aria-label="Школьные принадлежности: 385 штук">
-      <h2 class="summary-title">Доход за год</h2>
-      <p class="summary-value">{{sum_year|intcomma}}<span class="summary-unit"> сум</span></p>
-    </article>
-    <article class="summary-card" tabindex="0" aria-label="Мебель: 120 штук">
-      <h2 class="summary-title">Доход за месяц</h2>
-      <p class="summary-value">{{sum_month|intcomma}}<span class="summary-unit"> сум</span></p>
-    </article>
-    <article class="summary-card" tabindex="0" aria-label="Оборудование: 45 штук">
-      <h2 class="summary-title">Доход за день</h2>
-      <p class="summary-value">{{sum_day|intcomma}}<span class="summary-unit"> сум</span></p>
-    </article>
-  </section>
-   <div class="filters">
+       <div class="filters">
     <!-- Search -->
    <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
 
@@ -663,179 +762,86 @@ top-bar {
     </label>
     <button onclick="filterTable()">Фильтр</button>
   </div>
+    <div class="user-info" aria-label="Пользователь: Иван Иванов">
+      {{request.user.profile.lastname}} {{request.user.profile.name}}
+    </div>
+
+  </header>
+
+
   <!-- Tabs -->
-  <nav class="tabs" role="tablist" aria-label="Переключение между разделами">
-    <button role="tab" aria-selected="true" aria-controls="payments-tab" id="tabPayments" class="active">Платежи</button>
-    <button role="tab" aria-selected="false" aria-controls="debts-tab" id="tabDebts">Задолженности</button>
-  </nav>
+  <section class="class-section fade-in">
+    <h2 class="class-title">7A</h2>
+    <div class="payments-wrapper">
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>Ученик</th>
+            <th>Тип оплаты</th>
+            <th>Сумма (UZS)</th>
+            <th>Дата</th>
+            <th>Класс</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Иванов Иван Иванович</td>
+            <td>Наличные</td>
+            <td>250 000</td>
+            <td>01.10.2025</td>
+            <td>7A</td>
+            <td><button class="btn more">👁️</button></td>
+          </tr>
+          <tr>
+            <td>Петров Пётр Петрович</td>
+            <td>Перевод</td>
+            <td>200 000</td>
+            <td>03.10.2025</td>
+            <td>7A</td>
+            <td><button class="btn more">👁️</button></td>
+          </tr>
+        </tbody>
+      </table>
 
-  <!-- Payments tab -->
-  <section id="payments-tab" class="tab-content active" role="tabpanel" aria-labelledby="tabPayments" tabindex="0">
-    <table aria-label="Учёт оплат" id="paymentsTable">
-      <thead>
-        <tr>
-          <th scope="col">Ученик</th>
-          <th scope="col">Тип оплаты</th>
-          <th scope="col">Сумма (UZS)</th>
-          <th scope="col">Дата</th>
-          <th scope="col">Класс</th>
-          <th scope="col">Действия</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in payment %}
-       <tr
-  data-id="{{item.pk}}"
-  data-student="{{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}"
-  data-studentid="{{item.student.id}}"
-  data-studentclass="{{item.student.school_class.name}}"
-  data-type="{{item.type_of_payment}}"
-  data-sum="{{ item.sum|floatformat:0 }}"
->
-  <td data-label="Ученик">{{item.student.lastname}} {{item.student.name}} {{item.student.middle_name}}</td>
-  <td data-label="Тип оплаты">{{item.get_type_of_payment_display}}</td>
-  <td data-label="Сумма">{{item.sum}}</td>
-  <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
-  <td data-label="Статус">{{item.student.school_class.name}}</td>
-  <td>
-    <button class="btn more" data-id="{{item.student.pk}}">👁️</button>
-    <button class="btn edit" data-id="{{item.pk}}">✏️</button>
-    <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
-  </td>
-</tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <button class="btn-add-floating" aria-label="Добавить оплату" id="addPaymentBtn">＋</button>
+    </div>
   </section>
 
-  <!-- Services tab -->
-  <section id="services-tab" class="tab-content" role="tabpanel" aria-labelledby="tabServices" tabindex="0">
-    <table aria-label="Оплата дополнительных услуг" id="servicesTable">
-      <thead>
-        <tr>
-          <th scope="col">Ученик</th>
-          <th scope="col">Услуга</th>
-          <th scope="col">Сумма (UZS)</th>
-          <th scope="col">Дата</th>
-          <th scope="col">Статус</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for service in services %}
-        <tr data-id="{{service.pk}}">
-          <td>{{service.student.full_name}}</td>
-          <td>{{service.service_name}}</td>
-          <td>{{service.amount}}</td>
-          <td>{{service.created_at|date:'d.m.Y'}}</td>
-          <td>
-            {% if service.is_paid %} ✅ Оплачено {% else %} ❌ Не оплачено {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    <button class="btn-add-floating" aria-label="Добавить услугу" id="addServiceBtn">＋</button>
+  <section class="class-section fade-in">
+    <h2 class="class-title">8B</h2>
+    <div class="payments-wrapper">
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>Ученик</th>
+            <th>Тип оплаты</th>
+            <th>Сумма (UZS)</th>
+            <th>Дата</th>
+            <th>Класс</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Сидоров Алексей Николаевич</td>
+            <td>Наличные</td>
+            <td>300 000</td>
+            <td>02.10.2025</td>
+            <td>8B</td>
+            <td><button class="btn more">👁️</button></td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
   </section>
 
-  <section id="debts-tab" class="tab-content" role="tabpanel" aria-labelledby="tabDebts" tabindex="0">
-    <table aria-label="Задолженности" id="debtsTable">
-      <thead>
-        <tr>
-          <th scope="col">Ученик</th>
-          <th scope="col">Сумма задолженности</th>
-          <th scope="col">Дата последнего платежа</th>
-           <th scope="col">Класс</th>
-          <th scope="col">Действия</th>
 
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in debt %}
-        <tr>
-          <td>{{item.student__lastname}} {{item.student__name}} {{item.student__middle_name}}</td>
-          <td>{{item.total|intcomma}}</td>
-          <td>{{item.last_payment|date:'d.m.Y'}}</td>
-          <td>{{item.student__school_class__name}}</td>
-          <td>
-           <button class="btn more" data-id="{{item.student__id}}">👁️</button>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </section>
 </div>
 
 
 <!-- Modals -->
-<div class="modal" id="itemModal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle" tabindex="-1">
-  <div class="modal-content">
-    <h2 id="itemModalTitle">Оплата</h2>
-    <form id="itemForm" method="POST">
-           {% csrf_token %}
-<div style="position: relative; width: 100%;">
-  <label for="studentInput">Ученик</label>
-  <input
-    type="text"
-    id="studentInput"
-    name="student"
-    class="form-control"
-    placeholder="Введите имя ученика"
-    required
-    autocomplete="off"
-  />
-  <input type="hidden" id="itemPk" name="pk" value="">
-  <ul id="results" class="student-results"></ul>
 
-  <!-- скрытые поля для backend -->
-  <input type="hidden" id="studentId" name="student_id">
-  <input type="hidden" id="studentClass" name="student_class">
-</div>
-
-
-      <label for="itemCategory">Тип оплаты</label>
-      <select id="itemCategory" name="type_of_payment" required>
-        <option value="cash">Наличные</option>
-        <option value="bank">Карта</option>
-        <option value="card">Банковские переводы</option>
-
-      </select>
-   <label for="price">Сумма</label>
-<input type="text" id="price" />
-<input type="hidden" id="price_raw" name="sum" />
-
-
-
-
-      <input id="action" name="action"  value="payment" hidden>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-cancel" id="cancelItemBtn">Отмена</button>
-        <button type="submit" class="btn btn-primary" id="saveItemBtn">Сохранить</button>
-      </div>
-    </form>
-  </div>
-</div>
-<div class="modal" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" tabindex="-1">
-  <div class="modal-content">
-    <form method="POST">
-      {% csrf_token %}
-      <h2 id="deleteModalTitle">Удалить?</h2>
-      <p id="deleteItemName" style="font-weight:600; margin-bottom: 1.5rem;">
-        Вы хотите удалить?
-      </p>
-
-      <!-- Hidden inputs -->
-      <input type="hidden" name="action" value="delete">
-      <input type="hidden" name="pk" id="deleteItemPk" value="">
-
-      <div class="modal-actions">
-        <button type="button" class="btn btn-cancel" id="cancelDeleteBtn">Отмена</button>
-        <button type="submit" class="btn btn-primary">Удалить</button>
-      </div>
-    </form>
-  </div>
-</div>
 <div class="modal" id="moreModal" role="dialog" aria-modal="true" aria-labelledby="moreModalTitle" tabindex="-1">
   <div class="modal-content">
     <h2 id="moreModalTitle">Информация об ученике</h2>
@@ -879,6 +885,21 @@ top-bar {
     </div>
   </div>
 </div>
+  <script>
+    document.querySelectorAll('.class-title').forEach(title => {
+      title.addEventListener('click', () => {
+        const section = title.closest('.class-section');
+        const isActive = section.classList.contains('active');
+
+        // Close all
+        document.querySelectorAll('.class-section').forEach(s => s.classList.remove('active'));
+
+        // Open clicked one
+        if (!isActive) section.classList.add('active');
+      });
+    });
+  </script>
+
 <script>
 function filterTable() {
   const startDate = document.getElementById("startDate").value
@@ -1171,78 +1192,6 @@ document.getElementById('searchInput').addEventListener('input', function () {
   });
 });
 </script>
-  <script>
-    qz.security.setCertificatePromise(function(resolve, reject) {
-      resolve(`-----BEGIN CERTIFICATE-----
-MIIC+jCCAmOgAwIBAgIBADANBgkqhkiG9w0BAQ0FADCBmDELMAkGA1UEBhMCdXox
-EjAQBgNVBAgMCVNhbWFya2FuZDESMBAGA1UECgwJU2FtYXJrYW5kMRIwEAYDVQQD
-DAlTYW1hcmthbmQxEzARBgNVBAcMClNhbWFya2FuZHYxEjAQBgNVBAsMCVNhbWFy
-a2FuZDEkMCIGCSqGSIb3DQEJARYVcG93ZXJ6dmVyOThAZ21haWwuY29tMCAXDTI1
-MTAwNzA2NTQ0N1oYDzIwNTMwMjIyMDY1NDQ3WjCBmDELMAkGA1UEBhMCdXoxEjAQ
-BgNVBAgMCVNhbWFya2FuZDESMBAGA1UECgwJU2FtYXJrYW5kMRIwEAYDVQQDDAlT
-YW1hcmthbmQxEzARBgNVBAcMClNhbWFya2FuZHYxEjAQBgNVBAsMCVNhbWFya2Fu
-ZDEkMCIGCSqGSIb3DQEJARYVcG93ZXJ6dmVyOThAZ21haWwuY29tMIGfMA0GCSqG
-SIb3DQEBAQUAA4GNADCBiQKBgQC9VSrQnczBbJzn4PsHONhsHxPlpOy7EeHdk/GD
-APjWGeFh+cEk69dYRsTmfvmzEWXbrNEEDD/WqptcsbxjT1kDhKNCCr5BsGjPA7Pd
-tkTybRotOdTy0D3gqfXmIlL9/oH/DzKK+N34kvP9BGYq8crNA8kp41Ig7V6nIXfR
-9HOkZwIDAQABo1AwTjAdBgNVHQ4EFgQUvzSzbTuHO92CcsSJ/OtVQCedXS4wHwYD
-VR0jBBgwFoAUvzSzbTuHO92CcsSJ/OtVQCedXS4wDAYDVR0TBAUwAwEB/zANBgkq
-hkiG9w0BAQ0FAAOBgQB0QvwLKEAActxA4Jrwpz2kQIy5OWVJlg9yH+YuGpGkL1C0
-NDIqbiCkdbaPx87FMVsq8rjco+gp442eM2uf+pR9qtzjuevD01n5tRosI57G8OXC
-NrEfoYazdp/StSNXuIxlFmwhoe2b6UNN+5/yCxB8ATX9Qn5wxgBrgU9sRuuSpA==
------END CERTIFICATE-----`);
-    });
 
-    qz.security.setSignaturePromise(function(toSign) {
-      return function(resolve, reject) {
-        var pk = `-----BEGIN PRIVATE KEY-----
-MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAL1VKtCdzMFsnOfg
-+wc42GwfE+Wk7LsR4d2T8YMA+NYZ4WH5wSTr11hGxOZ++bMRZdus0QQMP9aqm1yx
-vGNPWQOEo0IKvkGwaM8Ds922RPJtGi051PLQPeCp9eYiUv3+gf8PMor43fiS8/0E
-Zirxys0DySnjUiDtXqchd9H0c6RnAgMBAAECgYBL3FsaWY/YFH/N/Pw4CZPVxqH/
-SpS7489fK88CEZqilp4S1rKH66NOMJTmUgwUrqzkVxsshwfxKEy12FVGaV2ddVvA
-Qo5xdoOSRIerbIt4JVtujDZ5yzzal0+0trCkM6S6FUszoUqfVmRBvzX+UvcD8+IJ
-nWZg1xuGmlcduBjZWQJBAOzPIyVRXSROxoOwNzp+bc0gqeDIcHbm5kryu9OzPYfM
-Z59B7D9Dt7OvqbC0As+lTeSEJ8uAZRA5TTxSmUJb0MsCQQDMrRRav4kBFH908yBL
-rzsKdTC37SCALHHTEl+e6eTxG/WI54jfYypLEONiSHPVx2jOvhsa1PBeEElLNfhA
-oNNVAkBQEno/1BM6g6h8Pslt7fISuki2yQ++JLUaApmgK6tSj7s6DoBjo/Ipv+wQ
-481PiQWdj1IlbXS+16FWFFfeKE2hAkA+rtcn/7bOvN9YCsmeRDk5t7BG8/lbJ8Fo
-Wh0sxwcVjHGDDx3NBErEmJR62iOXmi2P+4rDielfdW9s+EdiS57NAkEAwonRilTE
-l6HHBGeFxiy8h8iEZpt80Zf0SN8lpMgeu5A5X3gIx0yh1BaYrAK+iefMmm/r6832
-WvYgHDIvkdP/dA==
------END PRIVATE KEY-----`;
-
-        var sign = new KJUR.crypto.Signature({"alg": "SHA1withRSA"});
-        sign.init(pk);
-        sign.updateString(toSign);
-        var hex = sign.sign();
-        resolve(stob64(hextorstr(hex)));
-      };
-    });
-
-    function printCheque() {
-  return qz.websocket.connect()  // <-- return the Promise
-    .then(() => qz.printers.find("EPSON L3100 Series"))
-    .then(printer => {
-      var config = qz.configs.create(printer, {
-        encoding: 'utf-8',
-        endOfDoc: '\x0c',
-        perSpool: true
-      });
-
-      var data = [
-        '*** CHEQUE RECEIPT ***\r\n',
-        'Amount: $100.00\r\n',
-        'Date: 2025-10-07\r\n',
-        '----------------------\r\n',
-        'Thank you!\r\n\r\n\r\n\f'
-      ];
-
-      return qz.print(config, data);
-    })
-    .then(() => console.log("✅ Print complete"))
-    .catch(err => console.error("❌ Print error:", err));
-}
-  </script>
 </body>
 </html>

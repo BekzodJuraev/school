@@ -534,6 +534,10 @@ class Discount_view(LoginRequiredMixin,TemplateView):
 class Printer_checkView(TemplateView):
    template_name = 'printer.html'
 
+class ReportView(LoginRequiredMixin,TemplateView):
+   template_name = 'report.html'
+   login_url = reverse_lazy('login')
+
 # @csrf_exempt
 # def turnstile_event_view(request):
 #     if request.method == "POST":
