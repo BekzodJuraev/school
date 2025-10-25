@@ -751,16 +751,7 @@ top-bar {
     <!-- Search -->
    <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
 
-    <!-- Date filter -->
-    <label>
-      от:
-      <input type="date" id="startDate">
-    </label>
-    <label>
-      до:
-      <input type="date" id="endDate">
-    </label>
-    <button onclick="filterTable()">Фильтр</button>
+
   </div>
     <div class="user-info" aria-label="Пользователь: Иван Иванов">
       {{request.user.profile.lastname}} {{request.user.profile.name}}

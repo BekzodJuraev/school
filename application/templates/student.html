@@ -710,13 +710,18 @@ if (!document.getElementById('deleteButton')) {
 
 </script>
 <script>
-  const rowsPerPage = 10; // Customize per your needs
+const rowsPerPage = 10;
   const rows = document.querySelectorAll('.staff-row');
   const pagination = document.getElementById('paginationContainer');
 
-  function displayRows(startIndex) {
+  let currentPage = 1;
+
+  function displayRows(page) {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
     rows.forEach((row, index) => {
-      row.style.display = (index >= startIndex && index < startIndex + rowsPerPage) ? '' : 'none';
+      row.style.display = (index >= start && index < end) ? '' : 'none';
     });
   }
 
@@ -724,21 +729,50 @@ if (!document.getElementById('deleteButton')) {
     const totalPages = Math.ceil(rows.length / rowsPerPage);
     pagination.innerHTML = '';
 
-    for (let i = 0; i < totalPages; i++) {
+    function createButton(label, disabled = false, onClick = null) {
       const btn = document.createElement('button');
-      btn.textContent = i + 1;
-      btn.className = (i === 0) ? 'active' : '';
-      btn.onclick = () => {
-        document.querySelectorAll('#paginationContainer button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        displayRows(i * rowsPerPage);
-      };
+      btn.innerHTML = label; // use innerHTML for icons
+      if (disabled) btn.disabled = true;
+      if (onClick) btn.onclick = onClick;
       pagination.appendChild(btn);
+      return btn;
     }
+
+    // "1" and left arrow
+    createButton('1', currentPage === 1, () => changePage(1));
+    createButton('&#9664;', currentPage === 1, () => changePage(currentPage - 1)); // ◀
+
+    // Show max 5 pages around current
+    const totalPagesToShow = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(totalPagesToShow / 2));
+    let endPage = startPage + totalPagesToShow - 1;
+
+    if (endPage > totalPages) {
+      endPage = totalPages;
+      startPage = Math.max(1, endPage - totalPagesToShow + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      const btn = createButton(i, false, () => changePage(i));
+      if (i === currentPage) btn.classList.add('active');
+    }
+
+    // right arrow and last page number
+    createButton('&#9654;', currentPage === totalPages, () => changePage(currentPage + 1)); // ▶
+    createButton(totalPages.toString(), currentPage === totalPages, () => changePage(totalPages));
+  }
+
+  function changePage(page) {
+    const totalPages = Math.ceil(rows.length / rowsPerPage);
+    if (page < 1 || page > totalPages) return;
+
+    currentPage = page;
+    displayRows(page);
+    setupPagination();
   }
 
   // Initialize
-  displayRows(0);
+  displayRows(1);
   setupPagination();
 </script>
 <script>
