@@ -610,7 +610,9 @@ top-bar {
   <nav class="menu" aria-label="Главное меню">
   <a href="{% url 'dashboard' %}" class="menu-link" > 🏠 Панель</a>
        {% if request.user.profile.position == 'admin' %}
+
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+        <a href="{% url 'report' %}" class="menu-link ">📈 Отчет</a>
       {% endif %}
       <a href="{% url 'kassa' %}" class="menu-link  ">📊 Касса</a>
         <a href="{% url 'discount' %}" class="menu-link active ">💸 Скидки</a>

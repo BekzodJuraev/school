@@ -611,7 +611,7 @@ top-bar {
     }
 
     .class-title {
-      background: linear-gradient(135deg, #007bff, #0056d6);
+      background: #4e73df;
       color: #fff;
       padding: 16px 20px;
       margin: 0;
@@ -746,7 +746,7 @@ top-bar {
 <!-- Main content -->
 <div class="main-wrapper" role="main">
   <header class="top-bar">
-    <h1>Касса и оплата</h1>
+    <h1>Отчет</h1>
        <div class="filters">
     <!-- Search -->
    <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
@@ -798,34 +798,7 @@ top-bar {
     </div>
   </section>
 
-  <section class="class-section fade-in">
-    <h2 class="class-title">8B</h2>
-    <div class="payments-wrapper">
-      <table class="payments-table">
-        <thead>
-          <tr>
-            <th>Ученик</th>
-            <th>Тип оплаты</th>
-            <th>Сумма (UZS)</th>
-            <th>Дата</th>
-            <th>Класс</th>
-            <th>Действия</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Сидоров Алексей Николаевич</td>
-            <td>Наличные</td>
-            <td>300 000</td>
-            <td>02.10.2025</td>
-            <td>8B</td>
-            <td><button class="btn more">👁️</button></td>
-          </tr>
-        </tbody>
-      </table>
 
-    </div>
-  </section>
 
 
 </div>
@@ -889,300 +862,28 @@ top-bar {
         if (!isActive) section.classList.add('active');
       });
     });
+    document.querySelectorAll('.class-section').forEach(section => {
+  const rows = section.querySelectorAll('tbody tr');
+  const total = rows.length;
+
+  const totalElement = document.createElement('p');
+  totalElement.className = 'total-students';
+  totalElement.textContent = `Всего учеников: ${total}`;
+  section.appendChild(totalElement);
+});
   </script>
 
-<script>
-function filterTable() {
-  const startDate = document.getElementById("startDate").value
-    ? new Date(document.getElementById("startDate").value)
-    : null;
-  const endDate = document.getElementById("endDate").value
-    ? new Date(document.getElementById("endDate").value)
-    : null;
-
-  const rows = document.querySelectorAll("#paymentsTable tbody tr");
-
-  rows.forEach(row => {
-    const dateText = row.querySelector('[data-label="Дата"]').textContent.trim();
-    const [day, month, year] = dateText.split(".");
-    const rowDate = new Date(`${year}-${month}-${day}`);
-
-    let visible = true;
-    if (startDate && rowDate < startDate) visible = false;
-    if (endDate && rowDate > endDate) visible = false;
-
-    row.style.display = visible ? "" : "none";
-  });
-}
-</script>
-<script>
-document.getElementById("itemForm").addEventListener("submit", function (e) {
-  e.preventDefault(); // stop default submit until print finishes
-  const form = this;  // save reference to the form
-
-  const studentId = document.getElementById("studentId").value;
-  if (!studentId) {
-    alert("Ошибка: студент не выбран!");
-    return;
-  }
-
-  printCheque()
-    .then(() => {
-      form.submit(); // ✅ submit form after printing
-    })
-    .catch(err => {
-      console.error("Print failed, submitting anyway:", err);
-      form.submit(); // submit even if printing fails
-    });
-});
-</script>
-<script>
-document.querySelectorAll(".btn.more").forEach(btn => {
-  btn.addEventListener("click", async function () {
-    const id = this.dataset.id;
-
-    try {
-      const response = await fetch(`/student/${id}/more/`);
-      const data = await response.json();
-
-      // Заполняем поля
-      document.getElementById("moreStudentName").textContent = data.student_name;
-      document.getElementById("moreStudentClass").textContent = data.student_class;
-
-      // Payments
-      const paymentsTable = document.getElementById("morePayments");
-      paymentsTable.innerHTML = data.payments.map(p =>
-        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td></tr>`
-      ).join("");
-
-      // Debts
-      const debtsTable = document.getElementById("moreDebts");
-      debtsTable.innerHTML = data.debts.map(d =>
-        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td></tr>`
-      ).join("");
-
-      // Totals (считаем на бэке или тут)
-      document.getElementById("moreTotalPayments").textContent = data.total_payments.toLocaleString("ru-RU");
-      document.getElementById("moreTotalDebts").textContent = data.total_debts.toLocaleString("ru-RU");
-      document.getElementById("moreBalance").textContent = data.balance.toLocaleString("ru-RU");
-
-      if (data.balance < 0) {
-        moreBalance.innerHTML = `<strong>Предоплата:</strong> ${Math.abs(data.balance).toLocaleString("ru-RU")}`;
-      } else {
-        moreBalance.innerHTML = `<strong>Долги:</strong> ${data.balance.toLocaleString("ru-RU")}`;
-      }
 
 
-      // Показать модалку
-      document.getElementById("moreModal").classList.add("active");
-
-    } catch (err) {
-      console.error("Ошибка загрузки данных:", err);
-    }
-  });
-});
-
-// Закрытие модалки
-document.getElementById("closeMoreBtn").addEventListener("click", () => {
-  document.getElementById("moreModal").classList.remove("active");
-});
-</script>
-
-<script>
-  document.querySelectorAll(".btn.edit").forEach(btn => {
-  btn.addEventListener("click", function () {
-    const tr = this.closest("tr");
-    const pk = btn.getAttribute('data-id');
-    // Заполняем форму модалки
-    document.getElementById("studentInput").value = tr.dataset.student;
-    document.getElementById("studentId").value = tr.dataset.studentid;
-    document.getElementById("studentClass").value = tr.dataset.studentclass;
-
-    document.getElementById("itemCategory").value = tr.dataset.type;
-    itemModalTitle.textContent = 'Редактировать оплату'
-    document.getElementById('itemPk').value = pk;
-
-    // сумма (raw + красивый вывод)
-    const sum = tr.dataset.sum;
-    document.getElementById("price_raw").value = sum;
-    document.getElementById("price").value = sum.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-
-    // action → edit
-    document.getElementById("action").value = "edit";
-    document.getElementById("saveItemBtn").textContent = "Сохранить изменения";
-
-    openModal(itemModal);
-  });
-});
-</script>
-
-<script>
-const deleteModal = document.getElementById("deleteModal");
-const deleteItemPk = document.getElementById("deleteItemPk");
-
-// Вешаем обработчик на все кнопки удаления
-document.querySelectorAll(".btn.delete").forEach(btn => {
-  btn.addEventListener("click", function () {
-    const pk = this.getAttribute("data-id");
-
-    // сохраняем PK в скрытое поле
-    deleteItemPk.value = pk;
-
-    // открыть модалку
-    openModal(deleteModal);
-  });
-});
-
-// закрытие по кнопке "Отмена"
-document.getElementById("cancelDeleteBtn").addEventListener("click", function () {
-  closeModal(deleteModal);
-});
-</script>
-<script>
-
-const students = [
-{% for item in students %}
-  {id: {{item.id}}, name: "{{item.lastname}} {{item.name}} {{item.middle_name}}", class: "{{item.school_class__name}}"},
-
-{% endfor %}
-];
-
-const input = document.getElementById("studentInput");   // поле ввода
-const results = document.getElementById("results");      // список результатов
-const studentIdField = document.getElementById("studentId"); // скрытый input для id
-const studentClassField = document.getElementById("studentClass"); // скрытый input для класса (если нужно)
-
-// обработчик поиска
-input.addEventListener("input", function() {
-  const query = this.value.toLowerCase().trim();
-  results.innerHTML = "";
-
-  if (query.length === 0) {
-    results.style.display = "none";
-    return;
-  }
-
-  // фильтрация по имени или по классу
-  const filtered = students.filter(s =>
-    s.name.toLowerCase().includes(query) || s.class.toLowerCase().includes(query)
-  );
-
-  // генерация выпадающих пунктов
-  filtered.forEach(s => {
-    const li = document.createElement("li");
-    li.innerHTML = `<strong>${s.name}</strong> <span style="color: gray;">(${s.class})</span>`;
-    li.style.cursor = "pointer";
-
-    li.onclick = () => {
-      input.value = s.name;              // в input только имя
-      studentIdField.value = s.id;       // id в hidden
-      if (studentClassField) {
-        studentClassField.value = s.class; // класс в hidden (если есть)
-      }
-      results.style.display = "none";    // скрываем список
-    };
-
-    results.appendChild(li);
-  });
-
-  results.style.display = filtered.length > 0 ? "block" : "none";
-});
-
-// если кликнули вне input или списка — скрываем результаты
-document.addEventListener("click", function(e) {
-  if (!input.contains(e.target) && !results.contains(e.target)) {
-    results.style.display = "none";
-  }
-});
-</script>
-<script>
-const priceInput = document.getElementById("price");
-const priceRaw   = document.getElementById("price_raw");
-
-priceInput.addEventListener("input", function () {
-  let value = this.value;
-
-  // Убираем все кроме цифр
-  value = value.replace(/[^\d]/g, "");
-
-  // Записываем "чистое" значение без точек
-  priceRaw.value = value;
-
-  // Форматируем для отображения
-  let intPart = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  this.value = intPart;
-});
-</script>
-<script>
-
-  const cancelItemBtn = document.getElementById('cancelItemBtn');
-const addItemBtn = document.getElementById('addPaymentBtn');
-  // Open Add Item modal
-  addItemBtn.addEventListener('click', () => {
-    editingRow = null;
-    itemModalTitle.textContent = 'Оплата';
-    itemForm.reset();
-    openModal(itemModal);
-  });
-
-  function openModal(modal) {
-    modal.classList.add('active');
-    modal.focus();
-  }
-  function closeModal(modal) {
-    modal.classList.remove('active');
-  }
-    // Cancel Add/Edit modal
-   cancelItemBtn.addEventListener('click', () => {
-    closeModal(itemModal);
-  });
-</script>
-
-<script>
-  const sidebar = document.getElementById('sidebar');
-  const toggleBtn = document.getElementById('sidebarToggle');
-  toggleBtn.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-  });
 
 
-  const tabs = document.querySelectorAll('.tabs button');
-  const tabContents = document.querySelectorAll('.tab-content');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      tabContents.forEach(tc => tc.classList.remove('active'));
 
-      tab.classList.add('active');
-      tab.setAttribute('aria-selected', 'true');
 
-      const target = tab.getAttribute('aria-controls');
-      document.getElementById(target).classList.add('active');
-    });
-  });
 
-      // Поиск
-document.getElementById('searchInput').addEventListener('input', function () {
-  const filter = this.value.toLowerCase();
 
-  // Первая таблица
-  const rows = document.querySelectorAll('#paymentsTable tbody tr');
-  rows.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    row.style.display = text.includes(filter) ? '' : 'none';
-  });
 
-  // Вторая таблица
-  const rows2 = document.querySelectorAll('#debtsTable tbody tr');
-  rows2.forEach(row => {
-    const text = row.textContent.toLowerCase();
-    row.style.display = text.includes(filter) ? '' : 'none';
-  });
-});
-</script>
+
+
 
 </body>
 </html>
