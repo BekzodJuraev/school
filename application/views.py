@@ -416,11 +416,11 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       students_with_debt = Payment.objects.filter(
          transaction_type="debt",
          created_at__year=today.year,
-         created_at__month=today.month
+         created_at__month=today.month,
       ).values_list("student_id", flat=True)
 
 
-      students = Student.objects.exclude(id__in=students_with_debt)
+      students = Student.objects.exclude(id__in=students_with_debt).exclude(archive=True)
 
 
       payments = [
@@ -537,6 +537,27 @@ class Printer_checkView(TemplateView):
 class ReportView(LoginRequiredMixin,TemplateView):
    template_name = 'report.html'
    login_url = reverse_lazy('login')
+
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['classes']=SchoolClass.objects.prefetch_related(
+    Prefetch('students', queryset=Student.objects.filter(archive=False))
+      ).order_by('name')
+
+      context['archive_classes'] = (
+         SchoolClass.objects
+            .filter(students__archive=True)  # only classes that have archived students
+            .prefetch_related(
+            Prefetch('students', queryset=Student.objects.filter(archive=True))
+         )
+            .order_by('name')
+            .distinct()  # avoid duplicates if multiple archived students in one class
+      )
+
+      return context
+
+
 
 # @csrf_exempt
 # def turnstile_event_view(request):

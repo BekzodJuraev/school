@@ -717,6 +717,12 @@ top-bar {
       from { opacity: 0; transform: translateY(-5px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    .class-section .total-students {
+  display: none;
+}
+.class-section.active .total-students {
+  display: block;
+}
 
 </style>
 </head>
@@ -748,7 +754,7 @@ top-bar {
   <header class="top-bar">
     <h1>Отчет</h1>
        <div class="filters">
-    <!-- Search -->
+
    <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
 
 
@@ -761,46 +767,78 @@ top-bar {
 
 
   <!-- Tabs -->
+  {% for item in classes %}
   <section class="class-section fade-in">
-    <h2 class="class-title">7A</h2>
+    <h2 class="class-title">{{item.name}}</h2>
     <div class="payments-wrapper">
       <table class="payments-table">
         <thead>
           <tr>
             <th>Ученик</th>
-            <th>Тип оплаты</th>
-            <th>Сумма (UZS)</th>
-            <th>Дата</th>
-            <th>Класс</th>
+
+
+
+
+
             <th>Действия</th>
           </tr>
         </thead>
         <tbody>
+        {% for student in item.students.all %}
           <tr>
-            <td>Иванов Иван Иванович</td>
-            <td>Наличные</td>
-            <td>250 000</td>
-            <td>01.10.2025</td>
-            <td>7A</td>
-            <td><button class="btn more">👁️</button></td>
+            <td>{{student.lastname}} {{student.name}} {{student.middle_name}}</td>
+
+            <td><button class="btn more" data-id="{{student.id}}">👁️</button></td>
           </tr>
-          <tr>
-            <td>Петров Пётр Петрович</td>
-            <td>Перевод</td>
-            <td>200 000</td>
-            <td>03.10.2025</td>
-            <td>7A</td>
-            <td><button class="btn more">👁️</button></td>
-          </tr>
+        {% endfor %}
+
         </tbody>
       </table>
 
     </div>
   </section>
 
+{% endfor %}
+  <header class="top-bar">
+    {% if archive_classes %}
+    <h1>Архив</h1>
+    {% endif %}
 
 
 
+  </header>
+  {% for item in archive_classes %}
+  <section class="class-section fade-in">
+    <h2 class="class-title">{{item.name}}</h2>
+    <div class="payments-wrapper">
+      <table class="payments-table">
+        <thead>
+          <tr>
+            <th>Ученик</th>
+
+
+
+
+
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for student in item.students.all %}
+          <tr>
+            <td>{{student.lastname}} {{student.name}} {{student.middle_name}}</td>
+
+            <td><button class="btn more" data-id="{{student.id}}">👁️</button></td>
+          </tr>
+        {% endfor %}
+
+        </tbody>
+      </table>
+
+    </div>
+  </section>
+
+{% endfor %}
 </div>
 
 
@@ -850,31 +888,114 @@ top-bar {
   </div>
 </div>
   <script>
-    document.querySelectorAll('.class-title').forEach(title => {
-      title.addEventListener('click', () => {
-        const section = title.closest('.class-section');
-        const isActive = section.classList.contains('active');
+  document.querySelectorAll('.class-title').forEach(title => {
+  title.addEventListener('click', () => {
+    const section = title.closest('.class-section');
+    const isActive = section.classList.contains('active');
 
-        // Close all
-        document.querySelectorAll('.class-section').forEach(s => s.classList.remove('active'));
+    // Close all
+    document.querySelectorAll('.class-section').forEach(s => s.classList.remove('active'));
 
-        // Open clicked one
-        if (!isActive) section.classList.add('active');
-      });
-    });
-    document.querySelectorAll('.class-section').forEach(section => {
-  const rows = section.querySelectorAll('tbody tr');
-  const total = rows.length;
+    // Open clicked one
+    if (!isActive) {
+      section.classList.add('active');
 
-  const totalElement = document.createElement('p');
-  totalElement.className = 'total-students';
-  totalElement.textContent = `Всего учеников: ${total}`;
-  section.appendChild(totalElement);
+      // Calculate total when section is opened
+      const rows = section.querySelectorAll('tbody tr');
+      const total = rows.length;
+
+      let totalElement = section.querySelector('.total-students');
+      if (!totalElement) {
+        totalElement = document.createElement('p');
+        totalElement.className = 'total-students';
+        section.appendChild(totalElement);
+      }
+      totalElement.textContent = `Всего учеников: ${total}`;
+    }
+  });
 });
+
   </script>
 
 
+<script>
+  const searchInput = document.getElementById('searchInput');
 
+searchInput.addEventListener('keyup', () => {
+  const filter = searchInput.value.toLowerCase();
+
+  // Loop through all class sections
+  document.querySelectorAll('.class-section').forEach(section => {
+    const rows = section.querySelectorAll('tbody tr');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const studentName = row.querySelector('td').textContent.toLowerCase();
+      if (studentName.includes(filter)) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    // Hide section if no matches
+    section.style.display = visibleCount > 0 ? '' : 'none';
+  });
+});
+</script>
+
+<script>
+document.querySelectorAll(".btn.more").forEach(btn => {
+  btn.addEventListener("click", async function () {
+    const id = this.dataset.id;
+
+    try {
+      const response = await fetch(`/student/${id}/more/`);
+      const data = await response.json();
+
+      // Заполняем поля
+      document.getElementById("moreStudentName").textContent = data.student_name;
+      document.getElementById("moreStudentClass").textContent = data.student_class;
+
+      // Payments
+      const paymentsTable = document.getElementById("morePayments");
+      paymentsTable.innerHTML = data.payments.map(p =>
+        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td></tr>`
+      ).join("");
+
+      // Debts
+      const debtsTable = document.getElementById("moreDebts");
+      debtsTable.innerHTML = data.debts.map(d =>
+        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td></tr>`
+      ).join("");
+
+      // Totals (считаем на бэке или тут)
+      document.getElementById("moreTotalPayments").textContent = data.total_payments.toLocaleString("ru-RU");
+      document.getElementById("moreTotalDebts").textContent = data.total_debts.toLocaleString("ru-RU");
+      document.getElementById("moreBalance").textContent = data.balance.toLocaleString("ru-RU");
+
+      if (data.balance < 0) {
+        moreBalance.innerHTML = `<strong>Предоплата:</strong> ${Math.abs(data.balance).toLocaleString("ru-RU")}`;
+      } else {
+        moreBalance.innerHTML = `<strong>Долги:</strong> ${data.balance.toLocaleString("ru-RU")}`;
+      }
+
+
+      // Показать модалку
+      document.getElementById("moreModal").classList.add("active");
+
+    } catch (err) {
+      console.error("Ошибка загрузки данных:", err);
+    }
+  });
+});
+
+// Закрытие модалки
+document.getElementById("closeMoreBtn").addEventListener("click", () => {
+  document.getElementById("moreModal").classList.remove("active");
+});
+</script>
 
 
 

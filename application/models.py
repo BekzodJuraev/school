@@ -39,7 +39,7 @@ class Student(models.Model):
     created_at = models.DateField(auto_now_add=True)
     prikaz=models.IntegerField(default=None)
     prikaz_date=models.DateField(blank=True,null=True)
-    school_class = models.ForeignKey(SchoolClass, on_delete=models.SET_NULL, null=True, blank=True)
+    school_class = models.ForeignKey(SchoolClass, related_name='students',on_delete=models.SET_NULL, null=True, blank=True)
     Gender_CHOICES = [
         ("male", "Муж"),
         ("female", "Жен"),
