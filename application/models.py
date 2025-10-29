@@ -115,7 +115,7 @@ class Invoice(models.Model):
 
 
     def __str__(self):
-        return self.warehouse.name
+        return self.warehouse
 
 class Payment(models.Model):
     DEBT = "debt"
