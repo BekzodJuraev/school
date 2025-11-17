@@ -88,6 +88,14 @@ class Warehouse(models.Model):
     quantity=models.IntegerField(default=0)
     categories=models.CharField(max_length=100)
     name=models.CharField(max_length=200)
+    UNIT_CHOICES = [
+        ("шт", "Штука"),
+        ("кг", "Килограмм"),
+        ("г", "Грамм"),
+        ("л", "Литр"),
+        ("мл", "Миллитр"),
+    ]
+    unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default="шт")
 
 
 
@@ -102,8 +110,12 @@ class Invoice(models.Model):
 
     ]
     type_invoice= models.CharField(max_length=20, choices=TYPE)
-    warehouse=models.ForeignKey(Warehouse, on_delete=models.SET_NULL,null=True)
-    quantity = models.IntegerField(default=0)
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        null=True
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateField(auto_now_add=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     where=models.CharField(max_length=100)

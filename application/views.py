@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render,redirect
 from django.urls import reverse_lazy
 from django.db import models
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
 from django.db.models.functions import Coalesce
 from django.db.models import F, DecimalField, ExpressionWrapper
@@ -94,16 +95,21 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
       name = request.POST.get('name')
       price = request.POST.get('price') or 0
       category = request.POST.get('category')
+      unit=request.POST.get('unit')
 
 
       if action == 'add':
-         Warehouse.objects.get_or_create(name=name,categories=category)
+         Warehouse.objects.get_or_create(name=name,categories=category,unit=unit)
 
-      elif action == 'delete':
-         Warehouse.objects.filter(pk=pk).delete()
+      if action == 'delete':
+
+         try:
+            Warehouse.objects.filter(pk=pk).delete()
+         except ProtectedError:
+            return redirect(request.path)
 
       elif action == 'edit':
-         Warehouse.objects.filter(pk=pk).update(name=name,categories=category)
+         Warehouse.objects.filter(pk=pk).update(name=name,categories=category,unit=unit)
 
       elif action == 'add_invoice':
          warehouse=request.POST.get('warehouse')

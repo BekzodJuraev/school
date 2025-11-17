@@ -593,6 +593,7 @@
       <tr>
         <th scope="col">Название</th>
         <th scope="col">Категория</th>
+        <th scope="col"> Единица измерения</th>
         <th scope="col">Остаток</th>
         <th scope="col">Действия</th>
       </tr>
@@ -602,7 +603,8 @@
     <tr data-id="{{item.pk}}">
   <td data-label="Название" id="name-{{item.pk}}">{{item.name}}</td>
   <td id="category-{{item.pk}}">{{item.categories}}</td>
-  <td id="stock-{{item.pk}}">{{item.quantity}}</td>
+   <td id="unit-{{item.pk}}">{{item.unit}}</td>
+      <td id="stock-{{item.pk}}">{{item.quantity}}</td>
 
   <td>
     <button class="btn edit" data-id="{{item.pk}}">✏️</button>
@@ -623,7 +625,8 @@
           <th scope="col">Товар</th>
           <th scope="col">Дата</th>
           <th scope="col">Тип</th>
-          <th scope="col">Кол-во позиций</th>
+          <th scope="col">Количество</th>
+          <th scope="col">Единица измерения</th>
           <th scope="col">Цена за ед, (USZ) </th>
           <th scope="col">Общая сумма,(USZ) </th>
           <th scope="col">Действия</th>
@@ -635,8 +638,10 @@
           <td data-label="№ накладной">{{item.warehouse.name}}</td>
           <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
           <td data-label="Тип">{{item.type_invoice}}</td>
-          <td data-label="Кол-во позиций">{{item.quantity}}</td>
+          <td data-label="Количество">{{ item.quantity|floatformat:1 }}</td>
+          <td data-label="Единица измерения">{{item.warehouse.unit}}</td>
           {% if item.type_invoice == 'Приход' %}
+
            <td data-label="Цена">{{item.price}}</td>
           <td data-label="Общая сумма, ₽">{{item.total|floatformat:2}}</td>
           {% else %}
@@ -661,6 +666,7 @@
         <tr>
           <th scope="col">Дата</th>
           <th scope="col">Товар</th>
+          <th scope="col">Единица измерения</th>
           <th scope="col">Откуда</th>
           <th scope="col">Куда</th>
           <th scope="col">Кол-во</th>
@@ -672,9 +678,10 @@
         <tr>
           <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
           <td data-label="Товар">{{item.warehouse.name}}</td>
+           <td data-label="Единица измерения">{{item.warehouse.unit}}</td>
           <td data-label="Откуда">{{item.where}}</td>
           <td data-label="Куда">{{item.to}}</td>
-          <td data-label="Кол-во">{{item.quantity}}</td>
+          <td data-label="Кол-во">{{item.quantity|floatformat:1 }}</td>
           <td data-label="Комментарий">{{item.comment|default:""}}</td>
         </tr>
       {% endfor %}
@@ -706,7 +713,15 @@
         <option value="Мебель">Мебель</option>
         <option value="Оборудование">Оборудование</option>
         <option value="Хозтовары">Хозтовары</option>
+         <option value="Хозтовары">Кухня</option>
       </select>
+      <label for="unit">Единица измерения:</label>
+    <select id="unit" name="unit">
+        <option value="шт">Штука</option>
+        <option value="кг">Килограмм</option>
+        <option value="л">Литр</option>
+
+    </select><br><br>
 
 
       <input id="action" name="action"  value="add" hidden>
@@ -763,8 +778,8 @@
         <option value="Расход">Расход</option>
       </select>
 
-      <label for="invoicePositions">Кол-во позиций</label>
-      <input type="number" id="invoicePositions" name="quantity" min="1" step="1" required />
+      <label for="invoicePositions">Количество</label>
+      <input type="number" id="invoicePositions" name="quantity"  step="0.1" min="0.1" required />
       <div id="priceField" style="display:none;">
       <label for="itemPrice">Цена за единицу (USZ)</label>
       <input type="number" id="itemPrice" name="price" min="0" step="1" required />
@@ -981,9 +996,11 @@ document.getElementById('addInvoiceBtn').addEventListener('click', () => {
   modalActions.style.display = 'flex';
 
   // Ре-энейблим
+    document.getElementById('invoicePositions').disabled = false;
   document.getElementById('invoiceProduct').disabled = false;
   document.getElementById('invoiceType').disabled = false;
-  document.getElementById('invoicePositions').disabled = false;
+  document.getElementById('itemPrice').disabled = false;
+
 
   openModal(invoiceModal);
 });
@@ -1007,7 +1024,7 @@ document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
       }
     }
     document.getElementById('invoiceType').value = tr.querySelector('td[data-label="Тип"]').textContent;
-    document.getElementById('invoicePositions').value = tr.querySelector('td[data-label="Кол-во позиций"]').textContent;
+    document.getElementById('invoicePositions').value = tr.querySelector('td[data-label="Количество"]').textContent;
     document.getElementById('itemPrice').value=tr.querySelector('td[data-label="Цена"]').textContent;
 
     // Show expense fields if type is "Расход"
