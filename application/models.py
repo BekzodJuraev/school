@@ -9,6 +9,7 @@ class Profile(models.Model):
         ("admin", "Админ"),
         ("HR", "Отдел кадров"),
         ("supplier","Завхоз"),
+        ('chief',"Повар"),
         ("zavuch", "Завуч"),
 
 

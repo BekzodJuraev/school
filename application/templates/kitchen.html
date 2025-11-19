@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ШколаCRM — Учёт склада</title>
+<title>ШколаCRM — Кухня</title>
 <style>
   /* === Your base styles === */
   *, *::before, *::after {
@@ -548,9 +548,8 @@
       <a href="{% url 'report' %}" class="menu-link ">📈 Отчет</a>
        <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
         <a href="{% url 'discount' %}" class="menu-link ">💸 Скидки</a>
-         <a href="{% url 'warehouse' %}" class="menu-link  active ">📁 Склад</a>
-
-   <a href="{% url  'kitchen' %}" class="menu-link">🍽️ Кухня</a>
+         <a href="{% url 'warehouse' %}" class="menu-link   ">📁 Склад</a>
+         <a href="{% url 'kitchen' %}" class="menu-link active">🍽️ Кухня</a>
       <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
       <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
 
@@ -570,9 +569,23 @@
 <!-- Main content -->
 <div class="main-wrapper" role="main">
   <header class="top-bar">
-    <h1>Учёт склада школы</h1>
+    <h1>Учёт кухни школы</h1>
     <div class="user-info" aria-label="Пользователь: Иван Иванов">{{request.user.profile.lastname}} {{request.user.profile.name}}</div>
   </header>
+  <section class="summary-grid" aria-label="Общее количество товаров по категориям">
+    <article class="summary-card" tabindex="0" aria-label="Школьные принадлежности: 385 штук">
+      <h2 class="summary-title">Расход за год</h2>
+      <p class="summary-value"><span class="summary-unit"> сум</span></p>
+    </article>
+    <article class="summary-card" tabindex="0" aria-label="Мебель: 120 штук">
+      <h2 class="summary-title">Расход за месяц</h2>
+      <p class="summary-value"><span class="summary-unit"> сум</span></p>
+    </article>
+    <article class="summary-card" tabindex="0" aria-label="Оборудование: 45 штук">
+      <h2 class="summary-title">Расход за день</h2>
+      <p class="summary-value"><span class="summary-unit"> сум</span></p>
+    </article>
+  </section>
 
 
   <!-- Summary cards -->
@@ -581,9 +594,8 @@
 
   <!-- Tabs -->
   <nav class="tabs" role="tablist" aria-label="Переключение между разделами">
-    <button role="tab" aria-selected="true" aria-controls="inventory-tab" id="tabInventory" class="active">Склад</button>
-    <button role="tab" aria-selected="false" aria-controls="invoices-tab" id="tabInvoices">Накладные</button>
-    <button role="tab" aria-selected="false" aria-controls="history-tab" id="tabHistory">История</button>
+    <button role="tab" aria-selected="true" aria-controls="inventory-tab" id="tabInventory" class="active">Остатки продуктов</button>
+    <button role="tab" aria-selected="false" aria-controls="invoices-tab" id="tabInvoices">Расход кухни</button>
 
   </nav>
 
@@ -596,10 +608,8 @@
       <tr>
         <th scope="col">Название</th>
         <th scope="col">Категория</th>
-          <th scope="col">Остаток</th>
-        <th scope="col"> Единица измерения</th>
-
-        <th scope="col">Действия</th>
+        <th scope="col">Остаток</th>
+          <th scope="col"> Единица измерения</th>
       </tr>
     </thead>
     <tbody>
@@ -607,19 +617,15 @@
     <tr data-id="{{item.pk}}">
   <td data-label="Название" id="name-{{item.pk}}">{{item.name}}</td>
   <td id="category-{{item.pk}}">{{item.categories}}</td>
-    <td id="stock-{{item.pk}}">{{item.quantity|floatformat:1}}</td>
+      <td id="stock-{{item.pk}}">{{item.quantity}}</td>
       <td id="unit-{{item.pk}}">{{item.unit}}</td>
 
 
-  <td>
-    <button class="btn edit" data-id="{{item.pk}}">✏️</button>
-    <button class="btn delete" data-id="{{item.pk}}">🗑️</button>
-  </td>
 </tr>
     {% endfor %}
     </tbody>
   </table>
-  <button class="btn-add-floating" aria-label="Добавить товар" id="addItemBtn">＋</button>
+
 </section>
 
   <!-- Invoices tab -->
@@ -629,23 +635,7 @@
         <tr>
           <th scope="col">Товар</th>
           <th scope="col">Дата</th>
-<th style="position: relative; cursor: pointer;" id="typeHeader">
-        Тип ▼
-        <div id="typeDropdown" style="
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background: #4e73df;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            min-width: 80px;
-            z-index: 10;
-        ">
-          <div class="dropdown-item" data-type="all" style="padding: 5px; cursor: pointer;">Все</div>
-          <div class="dropdown-item" data-type="Приход" style="padding: 5px; cursor: pointer;">Приход</div>
-          <div class="dropdown-item" data-type="Расход" style="padding: 5px; cursor: pointer;">Расход</div>
-        </div>
+          <th scope="col">Тип</th>
           <th scope="col">Количество</th>
           <th scope="col">Единица измерения</th>
           <th scope="col">Цена за ед, (USZ) </th>
@@ -681,36 +671,7 @@
   </section>
 
   <!-- History tab -->
-  <section id="history-tab" class="tab-content" role="tabpanel" aria-labelledby="tabHistory" tabindex="0">
-    <table aria-label="История перемещений товаров" id="historyTable">
-      <thead>
-        <tr>
-          <th scope="col">Дата</th>
-          <th scope="col">Товар</th>
-          <th scope="col">Кол-во</th>
-          <th scope="col">Единица измерения</th>
-          <th scope="col">Откуда</th>
-          <th scope="col">Куда</th>
-          <th scope="col">Примечание</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in invoice %}
-        <tr>
-          <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
-          <td data-label="Товар">{{item.warehouse.name}}</td>
-               <td data-label="Кол-во">{{item.quantity|floatformat:1 }}</td>
-           <td data-label="Единица измерения">{{item.warehouse.unit}}</td>
-          <td data-label="Откуда">{{item.where}}</td>
-          <td data-label="Куда">{{item.to}}</td>
 
-          <td data-label="Комментарий">{{item.comment|default:""}}</td>
-        </tr>
-      {% endfor %}
-
-      </tbody>
-    </table>
-  </section>
 
   <!-- Notifications tab -->
 
@@ -719,62 +680,8 @@
 <!-- Modals -->
 
 <!-- Add/Edit Item Modal -->
-<div class="modal" id="itemModal" role="dialog" aria-modal="true" aria-labelledby="itemModalTitle" tabindex="-1">
-  <div class="modal-content">
-    <h2 id="itemModalTitle">Добавить товар</h2>
-    <form id="itemForm" method="POST">
-           {% csrf_token %}
-      <label for="itemName">Название товара</label>
-      <input type="text" id="itemName" name="name" required />
-       <input type="hidden" id="itemPk" name="pk" value="">
-
-      <label for="itemCategory">Категория</label>
-      <select id="itemCategory" name="category" required>
-        <option value="">Выберите категорию</option>
-        <option value="Школьные принадлежности">Школьные принадлежности</option>
-        <option value="Мебель">Мебель</option>
-        <option value="Оборудование">Оборудование</option>
-        <option value="Хозтовары">Хозтовары</option>
-         <option value="Кухня">Кухня</option>
-        <option value="Другое">Другое</option>
-      </select>
-      <label for="unit">Единица измерения:</label>
-    <select id="unit" name="unit">
-        <option value="шт">Штука</option>
-        <option value="кг">Килограмм</option>
-        <option value="л">Литр</option>
-
-    </select><br><br>
 
 
-      <input id="action" name="action"  value="add" hidden>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-cancel" id="cancelItemBtn">Отмена</button>
-        <button type="submit" class="btn btn-primary" id="saveItemBtn">Сохранить</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-
-<div class="modal" id="deleteModal" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle" tabindex="-1">
-  <div class="modal-content">
-    <form method="POST" >
-      {% csrf_token %}
-      <h2 id="deleteModalTitle">Удалить товар?</h2>
-      <p id="deleteItemName" style="font-weight:600; margin-bottom: 1.5rem;"></p>
-
-      <!-- Hidden inputs -->
-      <input type="hidden" name="action" value="delete">
-      <input type="hidden" name="pk" id="deleteItemPk" value="">
-
-      <div class="modal-actions">
-        <button type="button" class="btn btn-cancel" id="cancelDeleteBtn">Отмена</button>
-        <button type="submit" class="btn btn-primary">Удалить</button>
-      </div>
-    </form>
-  </div>
-</div>
 
 <div class="modal" id="invoiceModal" role="dialog" aria-modal="true" aria-labelledby="invoiceModalTitle" tabindex="-1">
   <div class="modal-content">
@@ -794,39 +701,18 @@
       <input type="hidden" id="invoicePk" name="pk" value="">
       <input type="hidden" id="invoiceAction" name="action" value="add_invoice">
 
-      <label for="invoiceType">Тип</label>
-      <select id="invoiceType" name="type_invoice" required>
-        <option value="">Выберите тип</option>
-        <option value="Приход">Приход</option>
-        <option value="Расход">Расход</option>
-      </select>
+
 
       <label for="invoicePositions">Количество</label>
       <input type="number" id="invoicePositions" name="quantity"  step="0.1" min="0.1" required />
-
-
-
       <div id="priceField" style="display:none;">
-  <label for="itemPrice">Цена за единицу (USZ)</label>
-
-<input type="text" id="itemPrice" name="price" required />
-</div>
-
-<!-- visible formatted input for user -->
-
+      <label for="itemPrice">Цена за единицу (USZ)</label>
+      <input type="number" id="itemPrice" name="price" min="0" step="1" required />
+      </div>
       <!-- Extra fields for "Расход" -->
-      <div id="expenseFields" style="display:none;">
-        <label for="invoiceDestination">Куда</label>
-        <select id="invoiceDestination" name="to">
-          <option value="">Выберите получателя</option>
-          <option value="Кухня">Кухня</option>
-          <option value="Другое">Другое</option>
-
-        </select>
 
         <label for="invoiceNote">Примечание</label>
         <input type="text" id="invoiceNote" name="note" />
-      </div>
 
       <div class="modal-actions" id="modal-actions_invoice">
         <button type="submit" class="btn btn-primary" id="saveInvoiceBtn">Сохранить</button>
@@ -836,44 +722,7 @@
 </div>
 
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const typeHeader = document.getElementById('typeHeader');
-  const dropdown = document.getElementById('typeDropdown');
-  const rows = document.querySelectorAll('#invoicesTable tbody tr');
 
-  // Показ/скрытие дропдауна
-  typeHeader.addEventListener('click', () => {
-    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-  });
-
-  // Фильтрация по выбору
-  dropdown.querySelectorAll('.dropdown-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const type = item.dataset.type;
-      rows.forEach(row => {
-        if (type === 'all') {
-          row.style.display = '';
-        } else {
-          const rowType = row.querySelector('td[data-label="Тип"]').textContent.trim();
-          row.style.display = rowType === type ? '' : 'none';
-        }
-      });
-      dropdown.style.display = 'none';
-    });
-  });
-
-  // Закрытие дропдауна при клике вне
-  document.addEventListener('click', (e) => {
-    if (!typeHeader.contains(e.target)) {
-      dropdown.style.display = 'none';
-    }
-  });
-});
-
-
-
-</script>
 <script>
 
   const sidebar = document.getElementById('sidebar');
@@ -1022,8 +871,8 @@ function onDeleteClick(e) {
 <script>
 const invoiceModal = document.getElementById('invoiceModal');
 const cancelInvoiceBtn = document.getElementById('cancelInvoiceBtn');
-const invoiceTypeSelect = document.getElementById('invoiceType');
-const expenseFields = document.getElementById('expenseFields');
+
+
 const priceFields = document.getElementById('priceField');
 const modalActions = document.getElementById('modal-actions_invoice'); // ✅
 
@@ -1032,22 +881,11 @@ cancelInvoiceBtn.addEventListener('click', () => {
   closeModal(invoiceModal);
 });
 
-// Show/hide "Расход" extra fields
-invoiceTypeSelect.addEventListener('change', () => {
-  if (invoiceTypeSelect.value === 'Расход') {
-    expenseFields.style.display = 'block';
-    priceFields.style.display = 'none';
-    document.getElementById('itemPrice').removeAttribute('required');
-  } else {
-    expenseFields.style.display = 'none';
-    priceFields.style.display = 'block';
-    document.getElementById('itemPrice').setAttribute('required', 'required');
-  }
-});
+
 
 // Add Invoice button (open modal for add)
 document.getElementById('addInvoiceBtn').addEventListener('click', () => {
-  document.getElementById('invoiceModalTitle').textContent = 'Добавить накладную';
+  document.getElementById('invoiceModalTitle').textContent = 'Добавить расход';
   document.getElementById('invoiceAction').value = 'add_invoice';
   document.getElementById('invoicePk').value = '';
 
@@ -1056,16 +894,14 @@ document.getElementById('addInvoiceBtn').addEventListener('click', () => {
 
   // Дополнительно явно очищаем (чтобы не остались из edit)
   document.getElementById('invoiceProduct').selectedIndex = -1;
-  document.getElementById('invoiceType').value = '';
   document.getElementById('invoicePositions').value = '';
 
-  expenseFields.style.display = 'none';
+
   modalActions.style.display = 'flex';
 
   // Ре-энейблим
     document.getElementById('invoicePositions').disabled = false;
   document.getElementById('invoiceProduct').disabled = false;
-  document.getElementById('invoiceType').disabled = false;
   document.getElementById('itemPrice').disabled = false;
 
 
@@ -1078,7 +914,7 @@ document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
     const tr = btn.closest('tr');
     const pk = tr.dataset.id;
 
-    document.getElementById('invoiceModalTitle').textContent = 'Просмотр накладной';
+    document.getElementById('invoiceModalTitle').textContent = 'Просмотр расход';
     document.getElementById('invoiceAction').value = 'edit_invoice';
     document.getElementById('invoicePk').value = pk;
     let name = tr.querySelector('td[data-label="№ накладной"]').textContent.trim();
@@ -1090,20 +926,14 @@ document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
         break;
       }
     }
-    document.getElementById('invoiceType').value = tr.querySelector('td[data-label="Тип"]').textContent;
+
     document.getElementById('invoicePositions').value = tr.querySelector('td[data-label="Количество"]').textContent;
     document.getElementById('itemPrice').value=tr.querySelector('td[data-label="Цена"]').textContent;
 
     // Show expense fields if type is "Расход"
-    if (document.getElementById('invoiceType').value === 'Расход') {
-      expenseFields.style.display = 'block';
-      priceFields.style.display = 'none';
-    } else {
-      expenseFields.style.display = 'none';
-      priceFields.style.display = 'block';
-    }
+
     document.getElementById('invoiceProduct').disabled = true;
-    document.getElementById('invoiceType').disabled = true;
+
     document.getElementById('invoicePositions').disabled = true;
     document.getElementById('itemPrice').disabled = true;
     // Скрываем кнопки действий (сохранить/отмена)
@@ -1117,44 +947,23 @@ document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
 </script>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById("invoiceForm");
-    const priceInput = document.getElementById('itemPrice');
-    const typeInput = document.getElementById("invoiceType");
+document.getElementById("invoiceForm").addEventListener("submit", function(e) {
     const productSelect = document.getElementById("invoiceProduct");
     const quantityInput = document.getElementById("invoicePositions");
+    const quantity = parseFloat(quantityInput.value || 0);
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
 
-    // Format price while typing
-    priceInput.addEventListener('input', () => {
-        let raw = priceInput.value.replace(/[^\d.]/g, '');
-        let num = parseFloat(raw) || 0;
+    if (type === "Расход") {
+        const availableStock = parseFloat(selectedOption.dataset.quantity || 0);
 
-        priceInput.value = num.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    });
-
-    // Form submit handler
-    form.addEventListener('submit', (e) => {
-        // 1️⃣ Convert formatted price to raw decimal
-        let rawValue = priceInput.value.replace(/[^\d.]/g, '').replace(',', '.');
-        priceInput.value = parseFloat(rawValue) || 0;
-
-        // 2️⃣ Stock check for Расход
-        const type = typeInput.value; // Приход / Расход
-        const quantity = parseFloat(quantityInput.value || 0);
-        const selectedOption = productSelect.options[productSelect.selectedIndex];
-
-        if (type === "Расход") {
-            const availableStock = parseFloat(selectedOption.dataset.quantity || 0);
-
-            if (quantity > availableStock) {
-                e.preventDefault(); // prevent form submit
-                alert(`Недостаточно товара на складе!\nТовар: ${selectedOption.dataset.name}\nДоступно: ${availableStock}`);
-                return false;
-            }
+        if (quantity > availableStock) {
+            e.preventDefault(); // prevent form submit
+            alert(`Недостаточно товара на складе!\nТовар: ${selectedOption.dataset.name}\nДоступно: ${availableStock}`);
+            return false;
         }
-    });
+    }
 });
-</script>
 
+</script>
 </body>
 </html>

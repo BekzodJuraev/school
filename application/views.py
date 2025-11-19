@@ -85,6 +85,43 @@ class Login(TemplateView):
 
       return render(request, self.template_name, {'errors': errors})
 
+class Kitchen_View(LoginRequiredMixin,TemplateView):
+   template_name = 'kitchen.html'
+   login_url = reverse_lazy('login')
+
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+
+
+      if action == 'add_invoice':
+         warehouse = request.POST.get('warehouse')
+         quantity = request.POST.get('quantity')
+         note = request.POST.get('note')
+
+         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, price=price, type_invoice=type_invoice,
+                                where="Склад", to="Кухня", comment=note)
+         if type_invoice == 'Расход':
+            Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
+         else:
+            Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') + quantity)
+
+      return redirect(request.path)
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+
+      # context['invoice'] = Invoice.objects.annotate(
+      #    total=ExpressionWrapper(
+      #       F('quantity') * F('price'),
+      #       output_field=DecimalField(max_digits=12, decimal_places=2)
+      #    )
+      # ).select_related('warehouse').order_by('-id')
+
+      context['warehouse']=Warehouse.objects.filter(categories='Кухня').order_by('-id')
+      return context
+
+
+
 class Warehouse_View(LoginRequiredMixin,TemplateView):
    template_name = 'warehouse.html'
    login_url = reverse_lazy('login')
@@ -115,7 +152,7 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
          warehouse=request.POST.get('warehouse')
          quantity=request.POST.get('quantity')
          type_invoice=request.POST.get('type_invoice')
-         where = 'Склад' if type_invoice == 'Расход' else ''
+         where = 'Склад' if type_invoice == 'Расход' else 'Поставщик'
          to='Склад' if type_invoice == 'Приход' else  request.POST.get('to')
          note=request.POST.get('note')
          Invoice.objects.create(warehouse_id=warehouse, quantity=quantity,price=price, type_invoice=type_invoice,where=where,to=to,comment=note)
