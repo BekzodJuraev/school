@@ -98,24 +98,16 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
          quantity = request.POST.get('quantity')
          note = request.POST.get('note')
 
-         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, price=price, type_invoice=type_invoice,
+         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, price=0, type_invoice='Расход',
                                 where="Склад", to="Кухня", comment=note)
-         if type_invoice == 'Расход':
-            Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
-         else:
-            Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') + quantity)
+         Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
 
       return redirect(request.path)
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
 
-      # context['invoice'] = Invoice.objects.annotate(
-      #    total=ExpressionWrapper(
-      #       F('quantity') * F('price'),
-      #       output_field=DecimalField(max_digits=12, decimal_places=2)
-      #    )
-      # ).select_related('warehouse').order_by('-id')
+      context['invoice'] = Invoice.objects.filter(warehouse__categories='Кухня',type_invoice='Расход').select_related('warehouse').order_by('-id')
 
       context['warehouse']=Warehouse.objects.filter(categories='Кухня').order_by('-id')
       return context
@@ -434,18 +426,19 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       type_of_payment=request.POST.get('type_of_payment')
       sum=request.POST.get('sum')
       student_pk=request.POST.get('student_id')
+      note=request.POST.get('note')
       transaction_type="payment"
 
       pk=request.POST.get('pk')
 
       if action == "payment":
-         Payment.objects.create(sum=sum,type_of_payment=type_of_payment,transaction_type=transaction_type,student_id=student_pk)
+         Payment.objects.create(sum=sum,type_of_payment=type_of_payment,transaction_type=transaction_type,student_id=student_pk,comment=note)
 
       elif action == "delete":
          Payment.objects.filter(pk=pk).delete()
 
       elif action == "edit":
-         Payment.objects.filter(pk=pk).update(sum=sum)
+         Payment.objects.filter(pk=pk).update(sum=sum,comment=note)
 
 
 

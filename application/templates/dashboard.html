@@ -227,6 +227,10 @@
       <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
       <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
       <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+      {% elif request.user.profile.position == 'chief' %}
+     <a href="{% url  'kitchen' %}" class="menu-link">🍽️ Кухня</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+
 
       {% endif %}
 

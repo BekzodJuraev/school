@@ -681,6 +681,7 @@ top-bar {
           <th scope="col">Сумма (UZS)</th>
           <th scope="col">Дата</th>
           <th scope="col">Класс</th>
+          <th scope="col">Примечание</th>
           <th scope="col">Действия</th>
         </tr>
       </thead>
@@ -699,6 +700,7 @@ top-bar {
   <td data-label="Сумма">{{item.sum}}</td>
   <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
   <td data-label="Статус">{{item.student.school_class.name}}</td>
+         <td data-label="Примечание">{{item.comment}}</td>
   <td>
     <button class="btn more" data-id="{{item.student.pk}}">👁️</button>
     <button class="btn edit" data-id="{{item.pk}}">✏️</button>
@@ -748,6 +750,7 @@ top-bar {
           <th scope="col">Сумма задолженности</th>
           <th scope="col">Дата последнего платежа</th>
            <th scope="col">Класс</th>
+
           <th scope="col">Действия</th>
 
         </tr>
@@ -806,7 +809,8 @@ top-bar {
    <label for="price">Сумма</label>
 <input type="text" id="price" />
 <input type="hidden" id="price_raw" name="sum" />
-
+ <label for="invoiceNote">Примечание</label>
+        <input type="text" id="invoiceNote" name="note" />
 
 
 

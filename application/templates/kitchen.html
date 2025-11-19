@@ -556,10 +556,11 @@
       <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
       <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
-     {% elif request.user.profile.position == 'supplier' %}
-      <a href="{% url 'warehouse' %}" class="menu-link  active ">📁 Склад</a>
-         <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+     {% elif request.user.profile.position == 'chief' %}
 
+
+      <a href="{% url 'kitchen' %}" class="menu-link active">🍽️ Кухня</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
       {% endif %}
 
   </nav>
@@ -572,20 +573,7 @@
     <h1>Учёт кухни школы</h1>
     <div class="user-info" aria-label="Пользователь: Иван Иванов">{{request.user.profile.lastname}} {{request.user.profile.name}}</div>
   </header>
-  <section class="summary-grid" aria-label="Общее количество товаров по категориям">
-    <article class="summary-card" tabindex="0" aria-label="Школьные принадлежности: 385 штук">
-      <h2 class="summary-title">Расход за год</h2>
-      <p class="summary-value"><span class="summary-unit"> сум</span></p>
-    </article>
-    <article class="summary-card" tabindex="0" aria-label="Мебель: 120 штук">
-      <h2 class="summary-title">Расход за месяц</h2>
-      <p class="summary-value"><span class="summary-unit"> сум</span></p>
-    </article>
-    <article class="summary-card" tabindex="0" aria-label="Оборудование: 45 штук">
-      <h2 class="summary-title">Расход за день</h2>
-      <p class="summary-value"><span class="summary-unit"> сум</span></p>
-    </article>
-  </section>
+
 
 
   <!-- Summary cards -->
@@ -635,11 +623,9 @@
         <tr>
           <th scope="col">Товар</th>
           <th scope="col">Дата</th>
-          <th scope="col">Тип</th>
           <th scope="col">Количество</th>
           <th scope="col">Единица измерения</th>
-          <th scope="col">Цена за ед, (USZ) </th>
-          <th scope="col">Общая сумма,(USZ) </th>
+            <th scope="col">Примечание</th>
           <th scope="col">Действия</th>
         </tr>
       </thead>
@@ -648,17 +634,9 @@
         <tr data-id="{{item.pk}}">
           <td data-label="№ накладной">{{item.warehouse.name}}</td>
           <td data-label="Дата">{{item.created_at|date:'d.m.Y'}}</td>
-          <td data-label="Тип">{{item.type_invoice}}</td>
           <td data-label="Количество">{{ item.quantity|floatformat:1 }}</td>
           <td data-label="Единица измерения">{{item.warehouse.unit}}</td>
-          {% if item.type_invoice == 'Приход' %}
-
-           <td data-label="Цена">{{item.price}}</td>
-          <td data-label="Общая сумма, ₽">{{item.total|floatformat:2}}</td>
-          {% else %}
-          <td data-label="Цена">-</td>
-          <td data-label="Общая сумма, ₽">-</td>
-          {% endif %}
+            <td data-label="Примечание">{{item.comment}}</td>
           <td data-label="Действия">
             <button class="btn edit" aria-label="Просмотр накладной 00123">👁️</button>
            <!-- <button class="btn delete" aria-label="Удалить накладную 00123">🗑️</button> -->
@@ -705,11 +683,8 @@
 
       <label for="invoicePositions">Количество</label>
       <input type="number" id="invoicePositions" name="quantity"  step="0.1" min="0.1" required />
-      <div id="priceField" style="display:none;">
-      <label for="itemPrice">Цена за единицу (USZ)</label>
-      <input type="number" id="itemPrice" name="price" min="0" step="1" required />
-      </div>
-      <!-- Extra fields for "Расход" -->
+
+
 
         <label for="invoiceNote">Примечание</label>
         <input type="text" id="invoiceNote" name="note" />
@@ -750,57 +725,9 @@
     });
   });
 
-  // Modal and form variables
-  const itemModal = document.getElementById('itemModal');
-  const deleteModal = document.getElementById('deleteModal');
 
-  const addItemBtn = document.getElementById('addItemBtn');
-  const cancelItemBtn = document.getElementById('cancelItemBtn');
-  const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-  const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-  const itemForm = document.getElementById('itemForm');
-  const itemModalTitle = document.getElementById('itemModalTitle');
-  const deleteItemName = document.getElementById('deleteItemName');
 
-  let editingRow = null;
 
-  // Open Add Item modal
-  addItemBtn.addEventListener('click', () => {
-    editingRow = null;
-    itemModalTitle.textContent = 'Добавить товар';
-    itemForm.reset();
-    openModal(itemModal);
-  });
-
-  // Cancel Add/Edit modal
-  cancelItemBtn.addEventListener('click', () => {
-    closeModal(itemModal);
-  });
-
-  // Cancel Delete modal
-  cancelDeleteBtn.addEventListener('click', () => {
-    closeModal(deleteModal);
-  });
-
-  // Handle edit buttons
-document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    const pk = btn.getAttribute('data-id'); // get the item's PK
-    const tr = btn.closest('tr');
-    editingRow = tr;
-
-    itemModalTitle.textContent = 'Редактировать товар';
-
-    // Fill form with current values using unique IDs
-    itemForm.name.value = document.getElementById(`name-${pk}`).textContent;
-    itemForm.category.value = document.getElementById(`category-${pk}`).textContent;
-
-    itemForm.price.value = parseFloat(
-      document.getElementById(`price-${pk}`).textContent.replace(/[^0-9.]/g, '')
-    );
-    openModal(itemModal);
-  });
-});
 
 
 document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
@@ -816,9 +743,8 @@ document.querySelectorAll('#inventoryTable .btn.edit').forEach(btn => {
     itemForm.name.value = document.getElementById(`name-${pk}`).textContent;
     itemForm.category.value = document.getElementById(`category-${pk}`).textContent;
 
-    itemForm.price.value = parseFloat(
-      document.getElementById(`price-${pk}`).textContent.replace(/[^0-9.]/g, '')
-    );
+
+
 
     openModal(itemModal);
   });
@@ -872,8 +798,6 @@ function onDeleteClick(e) {
 const invoiceModal = document.getElementById('invoiceModal');
 const cancelInvoiceBtn = document.getElementById('cancelInvoiceBtn');
 
-
-const priceFields = document.getElementById('priceField');
 const modalActions = document.getElementById('modal-actions_invoice'); // ✅
 
 // Cancel button closes modal
@@ -902,7 +826,7 @@ document.getElementById('addInvoiceBtn').addEventListener('click', () => {
   // Ре-энейблим
     document.getElementById('invoicePositions').disabled = false;
   document.getElementById('invoiceProduct').disabled = false;
-  document.getElementById('itemPrice').disabled = false;
+
 
 
   openModal(invoiceModal);
@@ -928,14 +852,14 @@ document.querySelectorAll('#invoicesTable .btn.edit').forEach(btn => {
     }
 
     document.getElementById('invoicePositions').value = tr.querySelector('td[data-label="Количество"]').textContent;
-    document.getElementById('itemPrice').value=tr.querySelector('td[data-label="Цена"]').textContent;
 
-    // Show expense fields if type is "Расход"
+
+
 
     document.getElementById('invoiceProduct').disabled = true;
 
     document.getElementById('invoicePositions').disabled = true;
-    document.getElementById('itemPrice').disabled = true;
+
     // Скрываем кнопки действий (сохранить/отмена)
     modalActions.style.display = 'none';
     document.getElementById('cancelInvoiceBtn').style.display = 'block';
@@ -953,15 +877,13 @@ document.getElementById("invoiceForm").addEventListener("submit", function(e) {
     const quantity = parseFloat(quantityInput.value || 0);
     const selectedOption = productSelect.options[productSelect.selectedIndex];
 
-    if (type === "Расход") {
-        const availableStock = parseFloat(selectedOption.dataset.quantity || 0);
+    const availableStock = parseFloat(selectedOption.dataset.quantity || 0);
 
         if (quantity > availableStock) {
             e.preventDefault(); // prevent form submit
             alert(`Недостаточно товара на складе!\nТовар: ${selectedOption.dataset.name}\nДоступно: ${availableStock}`);
             return false;
         }
-    }
 });
 
 </script>
