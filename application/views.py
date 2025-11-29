@@ -93,6 +93,7 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
       action = request.POST.get('action')
 
 
+
       if action == 'add_invoice':
          warehouse = request.POST.get('warehouse')
          quantity = request.POST.get('quantity')
@@ -127,6 +128,7 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
       unit=request.POST.get('unit')
 
 
+
       if action == 'add':
          Warehouse.objects.get_or_create(name=name,categories=category,unit=unit)
 
@@ -144,10 +146,11 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
          warehouse=request.POST.get('warehouse')
          quantity=request.POST.get('quantity')
          type_invoice=request.POST.get('type_invoice')
+         type_of_payment = request.POST.get('type_of_payment')
          where = 'Склад' if type_invoice == 'Расход' else 'Поставщик'
          to='Склад' if type_invoice == 'Приход' else  request.POST.get('to')
          note=request.POST.get('note')
-         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity,price=price, type_invoice=type_invoice,where=where,to=to,comment=note)
+         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity,price=price, type_invoice=type_invoice,where=where,to=to,comment=note,type_of_payment=type_of_payment)
          if type_invoice == 'Расход':
             Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
          else:

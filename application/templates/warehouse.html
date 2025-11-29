@@ -648,8 +648,10 @@
         </div>
           <th scope="col">Количество</th>
           <th scope="col">Единица измерения</th>
+              <th scope="col">Тип оплаты </th>
           <th scope="col">Цена за ед, (USZ) </th>
           <th scope="col">Общая сумма,(USZ) </th>
+
           <th scope="col">Действия</th>
         </tr>
       </thead>
@@ -662,7 +664,8 @@
           <td data-label="Количество">{{ item.quantity|floatformat:1 }}</td>
           <td data-label="Единица измерения">{{item.warehouse.unit}}</td>
           {% if item.type_invoice == 'Приход' %}
-
+            <td data-label="Тип оплаты">{{ item.get_type_of_payment_display }}
+</td>
            <td data-label="Цена">{{item.price}}</td>
           <td data-label="Общая сумма, ₽">{{item.total|floatformat:2}}</td>
           {% else %}
@@ -800,6 +803,14 @@
         <option value="Приход">Приход</option>
         <option value="Расход">Расход</option>
       </select>
+         <div id="prixod" style="display:none;">
+    <label for="Oplata">Тип оплаты</label>
+    <select id="Oplata" name="type_of_payment" required>
+        <option value="cash">Наличные</option>
+        <option value="bank">Карта</option>
+        <option value="card">Банковские переводы</option>
+    </select>
+</div>
 
       <label for="invoicePositions">Количество</label>
       <input type="number" id="invoicePositions" name="quantity"  step="0.1" min="0.1" required />
@@ -824,9 +835,12 @@
 
         </select>
 
+
         <label for="invoiceNote">Примечание</label>
         <input type="text" id="invoiceNote" name="note" />
       </div>
+
+
 
       <div class="modal-actions" id="modal-actions_invoice">
         <button type="submit" class="btn btn-primary" id="saveInvoiceBtn">Сохранить</button>
@@ -1024,6 +1038,9 @@ const invoiceModal = document.getElementById('invoiceModal');
 const cancelInvoiceBtn = document.getElementById('cancelInvoiceBtn');
 const invoiceTypeSelect = document.getElementById('invoiceType');
 const expenseFields = document.getElementById('expenseFields');
+const prixodFields = document.getElementById('prixod');
+
+const prixodfield = document.getElementById('prixod');
 const priceFields = document.getElementById('priceField');
 const modalActions = document.getElementById('modal-actions_invoice'); // ✅
 
@@ -1037,10 +1054,13 @@ invoiceTypeSelect.addEventListener('change', () => {
   if (invoiceTypeSelect.value === 'Расход') {
     expenseFields.style.display = 'block';
     priceFields.style.display = 'none';
+     prixodFields.style.display= 'none';
     document.getElementById('itemPrice').removeAttribute('required');
   } else {
     expenseFields.style.display = 'none';
     priceFields.style.display = 'block';
+    prixodFields.style.display= 'block';
+
     document.getElementById('itemPrice').setAttribute('required', 'required');
   }
 });
