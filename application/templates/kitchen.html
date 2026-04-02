@@ -969,10 +969,13 @@ document.querySelectorAll('.expense-input').forEach(input => {
             const newTotal = originalStock - expenseAmount;
             if (newTotal < 0) {
                 alert("Ошибка: Недостаточно товара на складе!");
-                // Можно сбросить поле расхода или подсветить его
-                expenseInput.style.backgroundColor = '#ffcccc';
-                setTimeout(() => expenseInput.style.backgroundColor = 'transparent', 1000);
-                return; // ПРЕРЫВАЕМ выполнение, в бэкэнд ничего не идет
+                expenseInput.value = 0;
+
+                // Возвращаем визуальный остаток к исходному значению
+                stockCell.textContent = originalStock;
+                stockCell.style.color = 'inherit';
+
+                return; // Прерываем, запрос в БД не идет
             }
 
 
