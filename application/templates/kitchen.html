@@ -534,6 +534,34 @@
   font-size: 22px;
   cursor: pointer;
 }
+
+/* Стилизуем инпут внутри ячейки */
+.expense-input {
+    display: block;
+    width: 100%;
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+
+    /* Текст должен стоять идеально ровно */
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    text-align: inherit; /* Наследует выравнивание от <td> */
+    padding: 0;
+    margin: 0;
+
+    appearance: none;
+    -moz-appearance: textfield; /* Скрывает стрелки в Firefox */
+}
+
+/* Полное удаление стрелочек в Chrome/Safari/Edge */
+.expense-input::-webkit-outer-spin-button,
+.expense-input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+}
 </style>
 </head>
 <body>
@@ -595,25 +623,35 @@
     <thead>
       <tr>
         <th scope="col">Название</th>
-        <th scope="col">Категория</th>
+          <th scope="col">Единица измерения</th>
+        <th scope="col">Расход</th>
         <th scope="col">Остаток</th>
-          <th scope="col"> Единица измерения</th>
+
       </tr>
     </thead>
     <tbody>
     {% for item in warehouse %}
     <tr data-id="{{item.pk}}">
-  <td data-label="Название" id="name-{{item.pk}}">{{item.name}}</td>
-  <td id="category-{{item.pk}}">{{item.categories}}</td>
-      <td id="stock-{{item.pk}}">{{item.quantity}}</td>
-      <td id="unit-{{item.pk}}">{{item.unit}}</td>
+      <td data-label="Название" id="name-{{item.pk}}">{{item.name}}</td>
+    <td id="unit-{{item.pk}}">{{item.unit}}</td>
+      <td id="rasxod-{{item.pk}}" >
+        <input type="number"
+               id="rasxod_number-{{item.pk}}"
+               class="expense-input"
+               data-id="{{item.pk}}"
+               value=0
+               style="width: 80px;">
+      </td>
+
+      <td id="stock-{{item.pk}}"  data-original-stock="{{item.quantity}}">
+        {{item.quantity}}
+      </td>
 
 
-</tr>
+    </tr>
     {% endfor %}
     </tbody>
   </table>
-
 </section>
 
   <!-- Invoices tab -->
@@ -886,6 +924,84 @@ document.getElementById("invoiceForm").addEventListener("submit", function(e) {
         }
 });
 
+</script>
+<script>
+document.querySelectorAll('.expense-input').forEach(input => {
+    // 1. Мгновенный расчет при вводе (Input)
+    input.addEventListener('input', function() {
+        const itemId = this.getAttribute('data-id');
+        const expenseValue = parseFloat(this.value) || 0;
+
+        const stockCell = document.getElementById(`stock-${itemId}`);
+        const originalStock = parseFloat(stockCell.getAttribute('data-original-stock'));
+
+        // Считаем новый остаток
+        const newQuantity = originalStock - expenseValue;
+
+        // Выводим в таблицу
+        stockCell.textContent = newQuantity;
+
+        // ПОДСВЕТКА: если ушли в минус — красный, если ок — обычный
+        if (newQuantity < 0) {
+            stockCell.style.color = 'red';
+            stockCell.style.fontWeight = 'bold';
+        } else {
+            stockCell.style.color = 'inherit';
+            stockCell.style.fontWeight = 'normal';
+        }
+    });
+
+    // 2. Отправка в Django при нажатии Enter
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+
+            const itemId = this.getAttribute('data-id');
+            const expenseInput = document.getElementById(`rasxod_number-${itemId}`);
+            const expenseAmount = parseFloat(expenseInput.value) || 0;
+            const stockCell = document.getElementById(`stock-${itemId}`);
+            const originalStock = parseFloat(stockCell.getAttribute('data-original-stock'));
+
+          // Проверка 1: Если введено 0 или пусто
+            if (expenseAmount <= 0) return;
+
+            // Проверка 2: Если расход больше, чем есть на складе
+            const newTotal = originalStock - expenseAmount;
+            if (newTotal < 0) {
+                alert("Ошибка: Недостаточно товара на складе!");
+                // Можно сбросить поле расхода или подсветить его
+                expenseInput.style.backgroundColor = '#ffcccc';
+                setTimeout(() => expenseInput.style.backgroundColor = 'transparent', 1000);
+                return; // ПРЕРЫВАЕМ выполнение, в бэкэнд ничего не идет
+            }
+
+
+            fetch('{% url "kitchen" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    'id': itemId,
+                    'quantity': expenseAmount
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // После сохранения фиксируем новый остаток как основной
+
+                    this.value = 0; // Сбрасываем поле расхода
+
+                    // Небольшая анимация успеха (зеленая вспышка)
+
+
+                }
+            });
+        }
+    });
+});
 </script>
 </body>
 </html>

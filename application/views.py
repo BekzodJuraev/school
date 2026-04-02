@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render,redirect
 from django.urls import reverse_lazy
 from django.db import models
+from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
 from django.db.models.functions import Coalesce
@@ -91,6 +92,38 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
 
    def post(self, request, *args, **kwargs):
       action = request.POST.get('action')
+      if request.content_type == 'application/json':
+         try:
+            data = json.loads(request.body)
+            item_id = data.get('id')
+            expense_quantity = data.get('quantity', 0)
+
+
+            if not item_id or float(expense_quantity) <= 0:
+               return JsonResponse({'status': 'error', 'message': 'Invalid data'}, status=400)
+
+            # Используем транзакцию, чтобы оба действия выполнились вместе
+            with transaction.atomic():
+               # Создаем запись о расходе
+               Invoice.objects.create(
+                  warehouse_id=item_id,
+                  quantity=expense_quantity,
+                  price=0,
+                  type_invoice='Расход',
+                  where="Склад",
+                  to="Кухня",
+                  comment="Списание через таблицу кухни"
+               )
+
+               # Обновляем остаток в базе
+               Warehouse.objects.filter(pk=item_id).update(
+                  quantity=F('quantity') - expense_quantity
+               )
+
+            return JsonResponse({'status': 'success'})
+
+         except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
 
@@ -108,9 +141,9 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
 
-      context['invoice'] = Invoice.objects.filter(warehouse__categories='Кухня',type_invoice='Расход').select_related('warehouse').order_by('-id')
+      context['invoice'] = Invoice.objects.filter(warehouse__categories__in=["Кухня","Хозтовары"],type_invoice='Расход').select_related('warehouse').order_by('-id')
 
-      context['warehouse']=Warehouse.objects.filter(categories='Кухня').order_by('-id')
+      context['warehouse']=Warehouse.objects.filter(categories__in=["Кухня","Хозтовары"]).order_by('-id')
       return context
 
 

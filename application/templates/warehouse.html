@@ -669,6 +669,8 @@
            <td data-label="Цена">{{item.price}}</td>
           <td data-label="Общая сумма, ₽">{{item.total|floatformat:2}}</td>
           {% else %}
+                  <td data-label="Тип оплаты">-
+</td>
           <td data-label="Цена">-</td>
           <td data-label="Общая сумма, ₽">-</td>
           {% endif %}
