@@ -607,7 +607,7 @@
     <tr data-id="{{item.pk}}">
   <td data-label="Название" id="name-{{item.pk}}">{{item.name}}</td>
   <td id="category-{{item.pk}}">{{item.categories}}</td>
-    <td id="stock-{{item.pk}}">{{item.quantity|floatformat:1}}</td>
+    <td id="stock-{{item.pk}}">{{item.stock|floatformat:1}}</td>
       <td id="unit-{{item.pk}}">{{item.unit}}</td>
 
 
@@ -666,14 +666,12 @@
           {% if item.type_invoice == 'Приход' %}
             <td data-label="Тип оплаты">{{ item.get_type_of_payment_display }}
 </td>
-           <td data-label="Цена">{{item.price}}</td>
-          <td data-label="Общая сумма, ₽">{{item.total|floatformat:2}}</td>
+
           {% else %}
-                  <td data-label="Тип оплаты">-
-</td>
-          <td data-label="Цена">-</td>
-          <td data-label="Общая сумма, ₽">-</td>
+                  <td data-label="Тип оплаты">-</td>
           {% endif %}
+            <td data-label="Цена">{{item.price}}</td>
+          <td data-label="Общая сумма, ₽">{{item.total|floatformat:2}}</td>
           <td data-label="Действия">
             <button class="btn edit" aria-label="Просмотр накладной 00123">👁️</button>
            <!-- <button class="btn delete" aria-label="Удалить накладную 00123">🗑️</button> -->
@@ -792,7 +790,7 @@
       <select id="invoiceProduct" name="warehouse" required>
         <option value="">Выберите товар</option>
         {% for product in warehouse %}
-          <option value="{{ product.pk }}" data-name="{{ product.name }}" data-quantity="{{ product.quantity }}">{{ product.name }}</option>
+          <option value="{{ product.pk }}" data-name="{{ product.name }}" data-quantity="{{ product.stock }}">{{ product.name }}</option>
         {% endfor %}
       </select>
 

@@ -30,7 +30,7 @@ from django.contrib.auth import authenticate,login,logout
 from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment
 from django.utils import timezone
 
-
+from decimal import Decimal
 class Dashboard(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'dashboard.html'
@@ -103,24 +103,55 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
                return JsonResponse({'status': 'error', 'message': 'Invalid data'}, status=400)
 
             # Используем транзакцию, чтобы оба действия выполнились вместе
+            active_arrivals = Invoice.objects.filter(
+               warehouse_id=item_id,
+               type_invoice="Приход",
+               remaining_quantity__gt=0
+            ).order_by('created_at')
+
+            remaining_to_deduct = Decimal(str(expense_quantity))  # Сколько всего нужно списать
+            where = "Склад"
+            to = "Кухня"
+            type_invoice = 'Расход'
+            note = "Списание через таблицу кухни"
+
             with transaction.atomic():
-               last_arrival = Invoice.objects.filter(
-                  warehouse_id=item_id,
-                  type_invoice="Приход",
-                  remaining_quantity__gt=0
-               ).order_by('created_at').first()
-               last_arrival.remaining_quantity = F('remaining_quantity') - expense_quantity
-               last_arrival.save()
-               price=Invoice.objects.filter(warehouse_id=item_id,type_invoice="Приход").update(remaining_quantity=F('remaining_quantity')-expense_quantity)
-               Invoice.objects.create(
-                  warehouse_id=item_id,
-                  quantity=expense_quantity,
-                  price=last_arrival.price,
-                  type_invoice='Расход',
-                  where="Склад",
-                  to="Кухня",
-                  comment="Списание через таблицу кухни"
-               )
+               for arrival in active_arrivals:
+                  if remaining_to_deduct <= 0:
+                     break
+
+                  # Проверяем, сколько можем забрать из этой партии
+                  if arrival.remaining_quantity >= remaining_to_deduct:
+                     # В этой партии достаточно товара
+                     arrival.remaining_quantity = F('remaining_quantity') - remaining_to_deduct
+                     arrival.save()
+
+                     # Создаем запись расхода с ценой этой партии
+                     Invoice.objects.create(
+                        warehouse_id=item_id,
+                        quantity=remaining_to_deduct,  # Списываем остаток запроса
+                        price=arrival.price,
+                        type_invoice=type_invoice,
+                        where=where, to=to, comment=note
+                     )
+                     remaining_to_deduct = 0  # Всё списано
+                  else:
+                     # В этой партии мало товара, забираем всё что есть
+                     can_take = arrival.remaining_quantity
+                     arrival.remaining_quantity = 0
+                     arrival.save()
+
+                     # Создаем запись расхода на ту часть, которую забрали
+                     Invoice.objects.create(
+                        warehouse_id=item_id,
+                        quantity=can_take,  # Списываем сколько было в этой партии
+                        price=arrival.price,
+                        type_invoice=type_invoice,
+                        where=where, to=to, comment=note
+                     )
+                     # Уменьшаем общую потребность и идем к следующей партии
+                     remaining_to_deduct -= can_take
+
 
 
 
@@ -225,20 +256,56 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
          where = 'Склад' if type_invoice == 'Расход' else 'Поставщик'
          to='Склад' if type_invoice == 'Приход' else  request.POST.get('to')
          note=request.POST.get('note')
-         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity,price=price, type_invoice=type_invoice,where=where,to=to,comment=note,type_of_payment=type_of_payment)
+
          if type_invoice == 'Расход':
-            Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
+            active_arrivals = Invoice.objects.filter(
+               warehouse_id=warehouse,
+               type_invoice="Приход",
+               remaining_quantity__gt=0
+            ).order_by('created_at')
+
+            remaining_to_deduct = Decimal(str(quantity))  # Сколько всего нужно списать
+
+            with transaction.atomic():
+               for arrival in active_arrivals:
+                  if remaining_to_deduct <= 0:
+                     break
+
+                  # Проверяем, сколько можем забрать из этой партии
+                  if arrival.remaining_quantity >= remaining_to_deduct:
+                     # В этой партии достаточно товара
+                     arrival.remaining_quantity = F('remaining_quantity') - remaining_to_deduct
+                     arrival.save()
+
+                     # Создаем запись расхода с ценой этой партии
+                     Invoice.objects.create(
+                        warehouse_id=warehouse,
+                        quantity=remaining_to_deduct,  # Списываем остаток запроса
+                        price=arrival.price,
+                        type_invoice=type_invoice,
+                        where=where, to=to, comment=note
+                     )
+                     remaining_to_deduct = 0  # Всё списано
+                  else:
+                     # В этой партии мало товара, забираем всё что есть
+                     can_take = arrival.remaining_quantity
+                     arrival.remaining_quantity = 0
+                     arrival.save()
+
+                     # Создаем запись расхода на ту часть, которую забрали
+                     Invoice.objects.create(
+                        warehouse_id=warehouse,
+                        quantity=can_take,  # Списываем сколько было в этой партии
+                        price=arrival.price,
+                        type_invoice=type_invoice,
+                        where=where, to=to, comment=note
+                     )
+                     # Уменьшаем общую потребность и идем к следующей партии
+                     remaining_to_deduct -= can_take
+
          else:
-            Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') + quantity)
-
-
-
-
-
-
-
-
-
+            Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, price=price, type_invoice=type_invoice,
+                                   where=where, to=to, comment=note, type_of_payment=type_of_payment,remaining_quantity=quantity)
 
       return redirect(request.path)
 
@@ -253,7 +320,15 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
          )
       ).select_related('warehouse').order_by('-id')
 
-      context['warehouse']=Warehouse.objects.all().order_by('-id')
+      context['warehouse']=Warehouse.objects.annotate(
+
+         a=Coalesce(Sum('invoice__quantity', filter=Q(invoice__type_invoice="Приход")), 0, output_field=models.DecimalField()),
+
+         # 2. Считаем расходы, принудительно заменяя NULL на 0
+         b=Coalesce(Sum('invoice__quantity', filter=Q(invoice__type_invoice="Расход")),0, output_field=models.DecimalField()),
+
+         # 3. Вычитаем одно из другого
+         stock=F('a') - F('b')).order_by('-id')
       return context
 
 
