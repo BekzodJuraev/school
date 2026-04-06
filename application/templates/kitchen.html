@@ -638,13 +638,13 @@
       <td data-label="Название" id="name-{{item.pk}}">{{item.name}}</td>
     <td id="unit-{{item.pk}}">{{item.unit}}</td>
        <td id="stock_day-{{item.pk}}"  >
-       {{ item.today_stock|default:0 }}
+       {{ item.today_stock|floatformat:1|default:0 }}
       </td>
          <td id="prixod_today-{{item.pk}}"  >
-        {{item.prixod_today|default:0}}
+        {{item.prixod_today|floatformat:1|default:0}}
       </td>
          <td id="rasxod_today-{{item.pk}}" >
-        {{item.rasxod_today|default:0}}
+        {{item.rasxod_today|floatformat:1|default:0}}
       </td>
 
       <td id="rasxod-{{item.pk}}" >
@@ -657,7 +657,7 @@
       </td>
 
       <td id="stock-{{item.pk}}"  data-original-stock="{{item.stock|default:0}}">
-        {{item.stock|default:0}}
+        {{item.stock|floatformat:1|default:0}}
       </td>
 
 
