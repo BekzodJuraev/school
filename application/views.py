@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 from django.views.decorators.http import require_POST
 from django.utils.timezone import now
 from collections import defaultdict
-from django.db.models import Sum,Q,Count,F,Max,Prefetch
+from django.db.models import Sum,Q,Count,F,Max,Prefetch,Value
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
@@ -104,21 +104,25 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
 
             # Используем транзакцию, чтобы оба действия выполнились вместе
             with transaction.atomic():
-               # Создаем запись о расходе
+               last_arrival = Invoice.objects.filter(
+                  warehouse_id=item_id,
+                  type_invoice="Приход",
+                  remaining_quantity__gt=0
+               ).order_by('created_at').first()
+               last_arrival.remaining_quantity = F('remaining_quantity') - expense_quantity
+               last_arrival.save()
+               price=Invoice.objects.filter(warehouse_id=item_id,type_invoice="Приход").update(remaining_quantity=F('remaining_quantity')-expense_quantity)
                Invoice.objects.create(
                   warehouse_id=item_id,
                   quantity=expense_quantity,
-                  price=0,
+                  price=last_arrival.price,
                   type_invoice='Расход',
                   where="Склад",
                   to="Кухня",
                   comment="Списание через таблицу кухни"
                )
 
-               # Обновляем остаток в базе
-               Warehouse.objects.filter(pk=item_id).update(
-                  quantity=F('quantity') - expense_quantity
-               )
+
 
             return JsonResponse({'status': 'success'})
 
@@ -141,10 +145,48 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
 
-      context['invoice'] = Invoice.objects.filter(warehouse__categories__in=["Кухня","Хозтовары"],type_invoice='Расход').select_related('warehouse').order_by('-id')
+      today = timezone.now().date()
+      yesterday = today- timedelta(days=1)
 
-      context['warehouse']=Warehouse.objects.filter(categories__in=["Кухня","Хозтовары"]).order_by('-id')
+      context['invoice'] = Invoice.objects.filter(warehouse__categories__in=["Кухня","Хозтовары"],type_invoice='Расход').annotate(
+         total=ExpressionWrapper(
+            F('quantity') * F('price'),
+            output_field=DecimalField(max_digits=12, decimal_places=2)
+         )
+      ).select_related('warehouse').order_by('-id')
+
+      context['warehouse']= Warehouse.objects.filter(
+        categories__in=["Кухня", "Хозтовары"]
+    ).annotate(
+
+         a=Coalesce(Sum('invoice__quantity', filter=Q(invoice__type_invoice="Приход")), 0, output_field=models.DecimalField()),
+
+         # 2. Считаем расходы, принудительно заменяя NULL на 0
+         b=Coalesce(Sum('invoice__quantity', filter=Q(invoice__type_invoice="Расход")),0, output_field=models.DecimalField()),
+
+         # 3. Вычитаем одно из другого
+         stock=F('a') - F('b'),
+
+        prixod_today=Sum('invoice__quantity', filter=Q(invoice__type_invoice="Приход",
+                                                    invoice__created_at=today
+                                                    )),
+
+        rasxod_today=Sum('invoice__quantity', filter=Q(invoice__type_invoice="Расход",
+                                                        invoice__created_at=today
+                                                        )),
+
+
+
+        today_stock=Sum('invoice__quantity', filter=Q(
+            invoice__type_invoice="Приход",
+            created_at__lt=today
+        ))
+
+      ).order_by('-id')
       return context
+
+
+
 
 
 

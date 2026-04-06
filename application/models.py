@@ -114,6 +114,7 @@ class Invoice(models.Model):
     warehouse = models.ForeignKey(
         Warehouse,
         on_delete=models.PROTECT,
+        related_name='invoice',
         null=True
     )
     TYPE = [
@@ -129,6 +130,7 @@ class Invoice(models.Model):
     where=models.CharField(max_length=100)
     to = models.CharField(max_length=100)
     comment=models.CharField(max_length=200,null=True,blank=True)
+    remaining_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
 
 
