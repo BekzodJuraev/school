@@ -149,7 +149,7 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
                         type_invoice=type_invoice,
                         where=where, to=to, comment=note
                      )
-                     # Уменьшаем общую потребность и идем к следующей партии
+
                      remaining_to_deduct -= can_take
 
 
@@ -167,9 +167,9 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
          quantity = request.POST.get('quantity')
          note = request.POST.get('note')
 
-         Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, price=0, type_invoice='Расход',
-                                where="Склад", to="Кухня", comment=note)
-         Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
+         # Invoice.objects.create(warehouse_id=warehouse, quantity=quantity, price=0, type_invoice='Расход',
+         #                        where="Склад", to="Кухня", comment=note)
+         # Warehouse.objects.filter(pk=warehouse).update(quantity=F('quantity') - quantity)
 
       return redirect(request.path)
 
@@ -186,32 +186,45 @@ class Kitchen_View(LoginRequiredMixin,TemplateView):
          )
       ).select_related('warehouse').order_by('-id')
 
-      context['warehouse']= Warehouse.objects.filter(
-        categories__in=["Кухня", "Хозтовары"]
-    ).annotate(
+      context['warehouse'] = Warehouse.objects.filter(
+         categories__in=["Кухня", "Хозтовары"]
+      ).annotate(
+         # 1. ВСЕ ПРИХОДЫ И РАСХОДЫ (для итогового остатка на текущий момент)
+         all_in=Coalesce(Sum('invoice__quantity', filter=Q(
+            invoice__type_invoice="Приход"
+         )), Value(0), output_field=DecimalField()),
 
-         a=Coalesce(Sum('invoice__quantity', filter=Q(invoice__type_invoice="Приход")), 0, output_field=models.DecimalField()),
+         all_out=Coalesce(Sum('invoice__quantity', filter=Q(
+            invoice__type_invoice="Расход"
+         )), Value(0), output_field=DecimalField()),
 
-         # 2. Считаем расходы, принудительно заменяя NULL на 0
-         b=Coalesce(Sum('invoice__quantity', filter=Q(invoice__type_invoice="Расход")),0, output_field=models.DecimalField()),
+         # Итоговый остаток сейчас (Конец дня)
+         stock=F('all_in') - F('all_out'),
 
-         # 3. Вычитаем одно из другого
-         stock=F('a') - F('b'),
-
-        prixod_today=Sum('invoice__quantity', filter=Q(invoice__type_invoice="Приход",
-                                                    invoice__created_at=today
-                                                    )),
-
-        rasxod_today=Sum('invoice__quantity', filter=Q(invoice__type_invoice="Расход",
-                                                        invoice__created_at=today
-                                                        )),
-
-
-
-        today_stock=Sum('invoice__quantity', filter=Q(
+         # 2. ОБОРОТЫ ЗА СЕГОДНЯ
+         prixod_today=Coalesce(Sum('invoice__quantity', filter=Q(
             invoice__type_invoice="Приход",
-            created_at__lt=today
-        ))
+            invoice__created_at=today
+         )), Value(0), output_field=DecimalField()),
+
+         rasxod_today=Coalesce(Sum('invoice__quantity', filter=Q(
+            invoice__type_invoice="Расход",
+            invoice__created_at=today
+         )), Value(0), output_field=DecimalField()),
+
+         # 3. НАЧАЛО ДНЯ (Всё что было накоплено СТРОГО ДО СЕГОДНЯ)
+         in_before=Coalesce(Sum('invoice__quantity', filter=Q(
+            invoice__type_invoice="Приход",
+            invoice__created_at__lt=today
+         )), Value(0), output_field=DecimalField()),
+
+         out_before=Coalesce(Sum('invoice__quantity', filter=Q(
+            invoice__type_invoice="Расход",
+            invoice__created_at__lt=today
+         )), Value(0), output_field=DecimalField()),
+
+         # Та самая стабильная цифра на 00:00
+         today_stock=F('in_before') - F('out_before')
 
       ).order_by('-id')
       return context
@@ -273,7 +286,7 @@ class Warehouse_View(LoginRequiredMixin,TemplateView):
 
                   # Проверяем, сколько можем забрать из этой партии
                   if arrival.remaining_quantity >= remaining_to_deduct:
-                     # В этой партии достаточно товара
+
                      arrival.remaining_quantity = F('remaining_quantity') - remaining_to_deduct
                      arrival.save()
 
