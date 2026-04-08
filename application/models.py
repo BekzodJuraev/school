@@ -24,11 +24,22 @@ class Profile(models.Model):
     def __str__(self):
         return self.name
 class SchoolClass(models.Model):
-    name = models.CharField(max_length=20, unique=True)  # e.g., "1-A", "2-B"
+    name = models.CharField(max_length=20, unique=True)
 
     def __str__(self):
         return self.name
 class Student(models.Model):
+    EDUCATION_TYPE_CHOICES = [
+        ("school", "Школа"),
+        ("kindergarten", "Садик"),
+        ("preschool","Подготовка"),
+    ]
+
+    education_type = models.CharField(
+        max_length=20,
+        choices=EDUCATION_TYPE_CHOICES,
+        default="school"
+    )
     name = models.CharField(max_length=200, null=True, blank=True, default=None)
     lastname = models.CharField(max_length=200, null=True, blank=True, default=None)
     middle_name = models.CharField(max_length=200, null=True, blank=True, default=None)

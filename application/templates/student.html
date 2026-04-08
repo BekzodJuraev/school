@@ -427,6 +427,7 @@
       <th>Имя</th>
       <th>Отчество</th>
       <th>Год рождения</th>
+            <th> Тип обучения</th>
       <th>Пол</th>
       <th>Номер телефона</th>
       <th>Адрес</th>
@@ -452,6 +453,7 @@
   <td data-label="Имя">{{item.name}}</td>
   <td data-label="Отчество">{{item.middle_name}}</td>
   <td data-label="Год рождения">{{item.date_birth|date:'d.m.Y'}}</td>
+            <td data-label="Тип обучения">{{item.get_education_type_display}}</td>
   <td data-label="Пол">{{item.get_position_gender_display}}</td>
   <td data-label="Номер телефона">{{item.phone}}</td>
   <td data-label="Адрес">{{item.adres}}</td>
@@ -477,6 +479,7 @@
   data-name="{{ item.name }}"
   data-middle_name="{{ item.middle_name }}"
   data-school_class="{{ item.school_class.name }}"
+  data-education_type="{{item.education_type}}"
   data-position_gender="{{ item.position_gender }}"
   data-date_birth="{{ item.date_birth|date:'Y-m-d' }}"
   data-adres="{{ item.adres }}"
@@ -521,6 +524,11 @@
         <input type="text" name="name" placeholder="Имя" required />
         <input type="text" name="middle_name" placeholder="Отчество" required />
         <input type="date" name="date_birth" placeholder="Год рождения" required/>
+           <select name="type_education" required>
+          <option value="school">Школа</option>
+          <option value="kindergarten">Садик</option>
+          <option value="preschool">Подготовка</option>
+        </select>
             <select name="school_class" required>
           <option value="">Класс</option>
                  {% for item in classes %}
@@ -534,6 +542,7 @@
           <option value="male">Муж</option>
           <option value="female">Жен</option>
         </select>
+
         <input type="tel" name="phone"  placeholder="+998901234567"
        pattern="^\+998\d{9}$"
        title="+998901234567"  required/>
@@ -676,6 +685,8 @@
     document.querySelector('[name="lastname"]').value = button.dataset.lastname || '';
     document.querySelector('[name="name"]').value = button.dataset.name || '';
     document.querySelector('[name="middle_name"]').value = button.dataset.middle_name || '';
+    document.querySelector('[name="education_type"]').value = button.dataset.education_type || '';
+
     document.querySelector('[name="position_gender"]').value = button.dataset.position_gender || '';
     document.querySelector('[name="phone"]').value = button.dataset.phone || '';
     document.querySelector('[name="date_birth"]').value = button.dataset.date_birth || '';

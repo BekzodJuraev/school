@@ -40,6 +40,9 @@ class Dashboard(LoginRequiredMixin,TemplateView):
       current_month = timezone.now().month
       current_year = timezone.now().year
       context['student'] = Student.objects.filter(archive=False).count()
+      context['preschool'] = Student.objects.filter(archive=False,education_type="preschool").count()
+      context['school'] = Student.objects.filter(archive=False,education_type="school").count()
+      context['kinder'] = Student.objects.filter(archive=False,education_type="kindergarten").count()
       context['staff'] = Staff.objects.all().count()
       context['teacher'] = Staff.objects.filter(position='teacher').count()
       context['sum'] = Payment.objects.filter(
@@ -427,13 +430,15 @@ class StudentView(LoginRequiredMixin,TemplateView):
       prikaz_date = request.POST.get('prikaz_date')
       school_class = request.POST.get('school_class')
       document = request.FILES.get('document')
+      type_education=request.POST.get("type_education")
 
       if action == 'create':
-         Student.objects.create(name=name,lastname=lastname,middle_name=middle_name,position_gender=position_gender,date_birth=date_birth,phone=phone,photo=photo,adres=adres,passport=passport,prikaz=prikaz,prikaz_date=prikaz_date,school_class_id=school_class,document=document)
+         Student.objects.create(name=name,lastname=lastname,middle_name=middle_name,position_gender=position_gender,date_birth=date_birth,phone=phone,photo=photo,adres=adres,passport=passport,prikaz=prikaz,prikaz_date=prikaz_date,school_class_id=school_class,document=document,education_type=type_education)
 
 
       elif action == 'update':
          staff = Student.objects.filter(id=id).first()
+         staff.education_type = type_education
          staff.name = name
          staff.lastname = lastname
          staff.middle_name = middle_name

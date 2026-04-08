@@ -189,15 +189,111 @@
         padding: 1rem;
       }
 
-      .card {
-        min-width: 100%;
-      }
+
 
       .button-group {
         flex-direction: column;
         align-items: stretch;
       }
     }
+:root {
+  --primary-color: #4f73ff;
+  --bg-light: #f8faff;
+  --text-main: #2d3436;
+  --text-muted: #636e72;
+  --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #edf2f7;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(79, 115, 255, 0.1);
+}
+
+.card h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Стили для одиночных цифр (Сотрудники, Доход) */
+.card p {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--primary-color);
+  margin: 0;
+}
+
+/* Секция учеников */
+stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* Убираем отступы между пунктами, будем использовать border */
+}
+
+/* Главная строка "Всего" */
+.stat-item.total {
+  background: #f0f3ff; /* Светло-голубой нежный фон вместо агрессивного синего */
+  color: #4f73ff;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(79, 115, 255, 0.1);
+}
+
+.stat-item.total strong {
+  font-size: 20px;
+}
+
+/* Обычные пункты (Школа, Садик и т.д.) */
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 5px;
+  border-bottom: 1px dashed #edf2f7; /* Тонкая пунктирная линия */
+  background: transparent; /* Убираем серые блоки */
+  color: #2d3436;
+}
+
+/* Убираем линию у последнего пункта */
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-item span {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Расстояние между иконкой и текстом */
+  font-size: 14px;
+  color: #636e72;
+}
+
+.stat-item strong {
+  font-size: 15px;
+ color: #2d3436;
+}
+
+
   </style>
 </head>
 <body>
@@ -243,28 +339,51 @@
       <p>📅 <span id="date"></span></p>
     </header>
 
+
     <section class="cards">
-      <div class="card">
-        <h3>Всего учеников</h3>
-        <p>{{student}}</p>
-      </div>
-        <div class="card">
-        <h3>Сотрудники</h3>
-        <p>{{staff}}</p>
-      </div>
-      <div class="card">
-        <h3>Преподавателей</h3>
-        <p>{{teacher}}</p>
-      </div>
-      {% if request.user.profile.position == 'admin' %}
-      <div class="card">
-        <h3>Доход за месяц</h3>
-        <p>{{sum|intcomma}} сум</p>
-      </div>
-      {% endif %}
+  <div class="card">
+  <h3>Ученики</h3>
 
+  <div class="stats">
+    <div class="stat-item total">
+      <span>📊 Всего</span>
+      <strong>{{student}}</strong>
+    </div>
 
-    </section>
+    <div class="stat-item">
+      <span>🏫 Школа</span>
+      <strong>{{school}}</strong>
+    </div>
+
+    <div class="stat-item">
+      <span>🧸 Садик</span>
+      <strong>{{kinder}}</strong>
+    </div>
+
+    <div class="stat-item">
+      <span>📘 Подготовка</span>
+      <strong>{{preschool}}</strong>
+    </div>
+  </div>
+</div>
+
+  <div class="card">
+    <h3>Сотрудники</h3>
+    <p>{{staff}}</p>
+  </div>
+
+  <div class="card">
+    <h3>Преподаватели</h3>
+    <p>{{teacher}}</p>
+  </div>
+
+  {% if request.user.profile.position == 'admin' %}
+  <div class="card">
+    <h3>Доход за месяц</h3>
+    <p>{{sum|intcomma}} <small style="font-size: 14px; font-weight: 400;">сум</small></p>
+  </div>
+  {% endif %}
+</section>
 
     <section class="actions">
       <h2>Быстрые действия</h2>
