@@ -627,7 +627,7 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       ).values_list("student_id", flat=True)
 
 
-      students = Student.objects.exclude(id__in=students_with_debt).exclude(archive=True)
+      students = Student.objects.filter(education_type="school").exclude(id__in=students_with_debt).exclude(archive=True)
 
 
       payments = [
@@ -642,12 +642,12 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       Payment.objects.bulk_create(payments)
 
 
-      context['students']=Student.objects.values('id','name','lastname','middle_name','school_class__name')
+      context['students']=Student.objects.filter(education_type="school").values('id','name','lastname','middle_name','school_class__name')
       current_month = timezone.now().month
       current_year = timezone.now().year
-      context['payment']=Payment.objects.filter(transaction_type='payment').select_related('student__school_class')
+      context['payment']=Payment.objects.filter(student__education_type="school",transaction_type='payment').select_related('student__school_class')
       context['more'] = Payment.objects.select_related('student__school_class')
-      context['debt']=Payment.objects.values('student__id', 'student__name','student__lastname','student__middle_name','student__school_class__name') \
+      context['debt']=Payment.objects.filter(student__education_type="school").values('student__id', 'student__name','student__lastname','student__middle_name','student__school_class__name') \
     .annotate(
         total=(
                 Coalesce(Sum('sum', filter=Q(transaction_type='debt')), 0, output_field=models.DecimalField()) -
@@ -655,15 +655,115 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
         ),last_payment=Max('created_at',filter=Q(transaction_type='payment'))
     ).filter(total__gt=0)
       context['sum_month'] = Payment.objects.filter(
+         student__education_type="school",
          transaction_type='payment',
          created_at__year=current_year,
          created_at__month=current_month
       ).aggregate(total=Sum('sum'))['total'] or 0
       context['sum_day'] = Payment.objects.filter(
+         student__education_type="school",
          transaction_type='payment',
          created_at=today
       ).aggregate(total=Sum('sum'))['total'] or 0
       context['sum_year'] = Payment.objects.filter(
+         student__education_type="school",
+         transaction_type='payment',
+         created_at__year=current_year,
+      ).aggregate(total=Sum('sum'))['total'] or 0
+
+
+
+      return  context
+
+
+class Kassa_sadik_view(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'kassa_sadik.html'
+
+
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+      type_of_payment=request.POST.get('type_of_payment')
+      sum=request.POST.get('sum')
+      student_pk=request.POST.get('student_id')
+      note=request.POST.get('note')
+      transaction_type="payment"
+
+      pk=request.POST.get('pk')
+
+      if action == "payment":
+         Payment.objects.create(sum=sum,type_of_payment=type_of_payment,transaction_type=transaction_type,student_id=student_pk,comment=note)
+
+      elif action == "delete":
+         Payment.objects.filter(pk=pk).delete()
+
+      elif action == "edit":
+         Payment.objects.filter(pk=pk).update(sum=sum,comment=note)
+
+
+
+
+      return redirect(request.path)
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      today = now().date()
+
+      students_with_debt = Payment.objects.filter(
+         transaction_type="debt",
+         created_at__year=today.year,
+         created_at__month=today.month,
+      ).values_list("student_id", flat=True)
+
+
+      students = Student.objects.filter(education_type__in=['kindergarten','preschool']).exclude(id__in=students_with_debt).exclude(archive=True)
+
+      def caluclate(s):
+         if s.discount:
+            return s.discount
+         elif s.education_type == "kindergarten":
+            return 1900000
+         else:
+            return 2100000
+
+
+      payments = [
+         Payment(
+            student=s,
+            transaction_type="debt",
+            sum=caluclate(s)
+         )
+         for s in students
+      ]
+
+      Payment.objects.bulk_create(payments)
+
+
+      context['students']=Student.objects.filter(education_type__in=['kindergarten','preschool']).values('id','name','lastname','middle_name','school_class__name')
+      current_month = timezone.now().month
+      current_year = timezone.now().year
+      context['payment']=Payment.objects.filter(student__education_type__in=['kindergarten','preschool'],transaction_type='payment').select_related('student__school_class').order_by("-id")
+      context['more'] = Payment.objects.select_related('student__school_class')
+      context['debt']=Payment.objects.filter(student__education_type__in=['kindergarten','preschool']).values('student__id', 'student__name','student__lastname','student__middle_name','student__school_class__name') \
+    .annotate(
+        total=(
+                Coalesce(Sum('sum', filter=Q(transaction_type='debt')), 0, output_field=models.DecimalField()) -
+                Coalesce(Sum('sum', filter=Q(transaction_type='payment')), 0, output_field=models.DecimalField())
+        ),last_payment=Max('created_at',filter=Q(transaction_type='payment'))
+    ).filter(total__gt=0)
+      context['sum_month'] = Payment.objects.filter(
+         student__education_type__in=['kindergarten', 'preschool'],
+         transaction_type='payment',
+         created_at__year=current_year,
+         created_at__month=current_month
+      ).aggregate(total=Sum('sum'))['total'] or 0
+      context['sum_day'] = Payment.objects.filter(
+         student__education_type__in=['kindergarten', 'preschool'],
+         transaction_type='payment',
+         created_at=today
+      ).aggregate(total=Sum('sum'))['total'] or 0
+      context['sum_year'] = Payment.objects.filter(
+         student__education_type__in=['kindergarten', 'preschool'],
          transaction_type='payment',
          created_at__year=current_year,
       ).aggregate(total=Sum('sum'))['total'] or 0
