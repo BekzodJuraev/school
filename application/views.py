@@ -848,19 +848,60 @@ class ReportView(LoginRequiredMixin,TemplateView):
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
-      context['classes']=SchoolClass.objects.prefetch_related(
-    Prefetch('students', queryset=Student.objects.filter(archive=False))
+      context['classes'] = SchoolClass.objects.filter(
+         students__education_type='school',
+         students__archive=False
+      ).distinct().prefetch_related(
+         Prefetch(
+            'students',
+            queryset=Student.objects.filter(education_type='school', archive=False)
+         )
       ).order_by('name')
 
-      context['archive_classes'] = (
-         SchoolClass.objects
-            .filter(students__archive=True)  # only classes that have archived students
-            .prefetch_related(
-            Prefetch('students', queryset=Student.objects.filter(archive=True))
+      # 2. ПОДГОТОВКА (Preschool)
+      context['preschool'] = SchoolClass.objects.filter(
+         students__education_type='preschool',
+         students__archive=False
+      ).distinct().prefetch_related(
+         Prefetch(
+            'students',
+            queryset=Student.objects.filter(education_type='preschool', archive=False)
          )
-            .order_by('name')
-            .distinct()  # avoid duplicates if multiple archived students in one class
+      ).order_by('name')
+
+      # 3. САДИК (Kinder)
+      context['kinder'] = SchoolClass.objects.filter(
+         students__education_type='kindergarten',
+         students__archive=False
+      ).distinct().prefetch_related(
+         Prefetch(
+            'students',
+            queryset=Student.objects.filter(education_type='kindergarten', archive=False)
+         )
+      ).order_by('name')
+
+      prefetch_archived = Prefetch(
+         'students',
+         queryset=Student.objects.filter(archive=True)
       )
+
+      # 2. Базовый QuerySet для всех архивных классов
+      # Фильтруем классы, в которых есть хотя бы один архивный ученик
+      def get_archive_by_type(edu_type):
+         return SchoolClass.objects.filter(
+            students__archive=True,
+            students__education_type=edu_type
+         ).distinct().prefetch_related(
+            Prefetch(
+               'students',
+               queryset=Student.objects.filter(archive=True, education_type=edu_type)
+            )
+         ).order_by('name')
+
+   # 1. Распределяем архив по категориям
+      context['archive_school'] = get_archive_by_type('school')
+      context['archive_kinder'] = get_archive_by_type('kindergarten')
+      context['archive_prep'] = get_archive_by_type('preschool')
 
       return context
 
