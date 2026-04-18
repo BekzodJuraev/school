@@ -722,9 +722,9 @@ class Kassa_sadik_view(LoginRequiredMixin,TemplateView):
          if s.discount:
             return s.discount
          elif s.education_type == "kindergarten":
-            return 1900000
+            return 2200000
          else:
-            return 2100000
+            return 2800000
 
 
       payments = [
