@@ -1,11 +1,12 @@
 {% load humanize %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.5/qz-tray.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsrsasign"></script>
+  <script src="https://kjur.github.io/jsrsasign/jsrsasign-all-min.js"></script>
 <title>ШколаCRM — Касса</title>
 <style>
   /* === Your base styles === */
@@ -847,10 +848,17 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
 
 
       <input id="action" name="action"  value="payment" hidden>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-cancel" id="cancelItemBtn">Отмена</button>
-        <button type="submit" class="btn btn-primary" id="saveItemBtn">Сохранить</button>
-      </div>
+     <div class="modal-actions" style="display: flex; gap: 10px;">
+  <button type="submit" id="saveOnlyBtn" class="btn btn-primary" style="background-color: #6c757d;">
+    Сохранить
+  </button>
+
+  <button type="button" id="saveAndPrintBtn" class="btn btn-primary">
+    Сохранить и печать
+  </button>
+
+  <button type="button" id="cancelItemBtn" class="btn btn-secondary">Отмена</button>
+</div>
     </form>
   </div>
 </div>
@@ -947,28 +955,8 @@ function filterTable() {
   });
 }
 </script>
-<!-- <script>
-document.getElementById("itemForm").addEventListener("submit", function (e) {
-  e.preventDefault(); // stop default submit until print finishes
-  const form = this;  // save reference to the form
 
-  const studentId = document.getElementById("studentId").value;
-  if (!studentId) {
-    alert("Ошибка: студент не выбран!");
-    return;
-  }
 
-  printCheque()
-    .then(() => {
-      form.submit(); // ✅ submit form after printing
-    })
-    .catch(err => {
-      console.error("Print failed, submitting anyway:", err);
-      form.submit(); // submit even if printing fails
-    });
-});
-</script>
--->
 <script>
 document.querySelectorAll(".btn.more").forEach(btn => {
   btn.addEventListener("click", async function () {
@@ -1022,29 +1010,41 @@ document.getElementById("closeMoreBtn").addEventListener("click", () => {
 </script>
 
 <script>
-  document.querySelectorAll(".btn.edit").forEach(btn => {
+document.querySelectorAll(".btn.edit").forEach(btn => {
   btn.addEventListener("click", function () {
     const tr = this.closest("tr");
-    const pk = btn.getAttribute('data-id');
-    // Заполняем форму модалки
-    document.getElementById("studentInput").value = tr.dataset.student;
-    document.getElementById("studentId").value = tr.dataset.studentid;
-    document.getElementById("studentClass").value = tr.dataset.studentclass;
+    const pk = this.getAttribute('data-id'); // Use this.getAttribute for consistency
 
-    document.getElementById("itemCategory").value = tr.dataset.type;
-    itemModalTitle.textContent = 'Редактировать оплату'
+    // 1. Explicitly get the elements to avoid "null" errors
+    const modalTitle = document.getElementById("itemModalTitle");
+    const saveBtn = document.getElementById("saveItemBtn");
+    const itemModal = document.getElementById("itemModal");
+
+    // 2. Populate form fields
+    document.getElementById("studentInput").value = tr.dataset.student || "";
+    document.getElementById("studentId").value = tr.dataset.studentid || "";
+    document.getElementById("studentClass").value = tr.dataset.studentclass || "";
+    document.getElementById("itemCategory").value = tr.dataset.type || "";
     document.getElementById('itemPk').value = pk;
 
-    // сумма (raw + красивый вывод)
-    const sum = tr.dataset.sum;
+    // 3. Handle sum (raw + formatted display)
+    const sum = tr.dataset.sum || "0";
     document.getElementById("price_raw").value = sum;
     document.getElementById("price").value = sum.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
-    // action → edit
+    // 4. Update action and UI text
     document.getElementById("action").value = "edit";
-    document.getElementById("saveItemBtn").textContent = "Сохранить изменения";
 
-    openModal(itemModal);
+    // Safety check: only set textContent if the elements exist
+    if (modalTitle) modalTitle.textContent = 'Редактировать оплату';
+    if (saveBtn) saveBtn.textContent = "Сохранить изменения";
+
+    // 5. Open the modal
+    if (itemModal) {
+        openModal(itemModal);
+    } else {
+        console.error("Error: itemModal element not found in the DOM.");
+    }
   });
 });
 </script>
@@ -1217,6 +1217,8 @@ document.getElementById('searchInput').addEventListener('input', function () {
 });
 </script>
   <script>
+
+  const LOGO_URL = window.location.origin + "{% static 'logo.png' %}";
     qz.security.setCertificatePromise(function(resolve, reject) {
       resolve(`-----BEGIN CERTIFICATE-----
 MIIC+jCCAmOgAwIBAgIBADANBgkqhkiG9w0BAQ0FADCBmDELMAkGA1UEBhMCdXox
@@ -1265,29 +1267,86 @@ WvYgHDIvkdP/dA==
       };
     });
 
-    function printCheque() {
-  return qz.websocket.connect()  // <-- return the Promise
-    .then(() => qz.printers.find("EPSON L3100 Series"))
-    .then(printer => {
-      var config = qz.configs.create(printer, {
-        encoding: 'utf-8',
-        endOfDoc: '\x0c',
-        perSpool: true
-      });
+   async function printCheque() {
+        const studentName = document.getElementById("studentInput").value;
+        const amount = document.getElementById("price").value;
+        const paymentType = document.getElementById("itemCategory").options[document.getElementById("itemCategory").selectedIndex].text;
+        const currentDate = new Date().toLocaleDateString('ru-RU');
 
-      var data = [
-        '*** CHEQUE RECEIPT ***\r\n',
-        'Amount: $100.00\r\n',
-        'Date: 2025-10-07\r\n',
-        '----------------------\r\n',
-        'Thank you!\r\n\r\n\r\n\f'
-      ];
+        try {
+            // Connect to QZ Tray if not connected
+            if (!qz.websocket.isActive()) {
+                await qz.websocket.connect();
+            }
 
-      return qz.print(config, data);
-    })
-    .then(() => console.log("✅ Print complete"))
-    .catch(err => console.error("❌ Print error:", err));
-}
+            // FIND PRINTER: Grabs the system default regardless of brand (Canon/Epson)
+            const printer = await qz.printers.getDefault();
+
+            const config = qz.configs.create(printer, {
+                encoding: 'utf-8',
+                endOfDoc: '\x0c'
+            });
+
+            const data = [
+    {
+        type: 'pixel',
+        format: 'html', // We use HTML to render the logo and text together
+        flavor: 'plain',
+        data: `
+            <div style="font-family: sans-serif; width: 280px; text-align: center;">
+                <img src="${LOGO_URL}" style="width: 100px; margin-bottom: 10px;">
+                <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+                <h3 style="margin: 5px 0;">Школа Istiqbolli Ta\`lim</h3>
+                <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+                <div style="text-align: left;">
+                    <p>Дата: ${currentDate}</p>
+                    <p>Ученик: ${studentName}</p>
+                    <p>Сумма: ${amount} UZS</p>
+                    <p>Тип: ${paymentType}</p>
+                </div>
+                <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+                <p>СПАСИБО ЗА ОПЛАТУ!</p>
+            </div>
+        `,
+        options: {
+            dotDensity: "double"
+        }
+    }
+];
+
+            return await qz.print(config, data);
+
+        } catch (err) {
+            console.error("Printer error details:", err);
+            // Don't block the UI if the printer is just off
+            throw err;
+        }
+    }
+
+    saveAndPrintBtn.addEventListener("click", async function () {
+    try {
+        // 1. Run the print logic
+        console.log("Starting print...");
+        await printCheque();
+
+        // 2. If print starts successfully, submit the form
+        itemForm.submit();
+    } catch (err) {
+        console.error("Print failed:", err);
+        // If printer is off, ask user if they still want to save
+        if (confirm("Принтер не найден. Сохранить данные без печати?")) {
+            itemForm.submit();
+        }
+    }
+});
+
+// Handle standard "Сохранить" (Save Only)
+// Since this is a type="submit" button, it triggers the 'submit' event
+itemForm.addEventListener("submit", function (e) {
+    // If the user clicked 'Save Only', we just let the form submit naturally
+    // We don't call e.preventDefault() here unless we are doing AJAX
+    console.log("Saving to database without printing...");
+});
   </script>
 </body>
 </html>
