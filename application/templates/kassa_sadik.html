@@ -1270,8 +1270,22 @@ WvYgHDIvkdP/dA==
    async function printCheque() {
         const studentName = document.getElementById("studentInput").value;
         const amount = document.getElementById("price").value;
-        const paymentType = document.getElementById("itemCategory").options[document.getElementById("itemCategory").selectedIndex].text;
-        const currentDate = new Date().toLocaleDateString('ru-RU');
+        const rawType = document.getElementById("itemCategory").value;
+        const note = document.getElementById("invoiceNote").value; // Это ваш Izoh
+        const currentDate = new Date().toLocaleString('ru-RU');
+
+        let paymentTypeDisplay = "";
+
+    // Преобразуем для чека
+        if (rawType === "cash") {
+            paymentTypeDisplay = "Naqd";
+        } else if (rawType === "bank") {
+            paymentTypeDisplay = "Hisob raqam";
+        } else if (rawType === "card") {
+            paymentTypeDisplay = "Plastik";
+        } else {
+            paymentTypeDisplay = rawType;
+        }
 
         try {
             // Connect to QZ Tray if not connected
@@ -1287,32 +1301,62 @@ WvYgHDIvkdP/dA==
                 endOfDoc: '\x0c'
             });
 
-            const data = [
-    {
+           const data = [{
         type: 'pixel',
-        format: 'html', // We use HTML to render the logo and text together
+        format: 'html',
         flavor: 'plain',
         data: `
-            <div style="font-family: sans-serif; width: 280px; text-align: center;">
-                <img src="${LOGO_URL}" style="width: 100px; margin-bottom: 10px;">
-                <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
-                <h3 style="margin: 5px 0;">Школа Istiqbolli Ta\`lim</h3>
-                <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
-                <div style="text-align: left;">
-                    <p>Дата: ${currentDate}</p>
-                    <p>Ученик: ${studentName}</p>
-                    <p>Сумма: ${amount} UZS</p>
-                    <p>Тип: ${paymentType}</p>
+            <div style="font-family: 'Arial', sans-serif; width: 260px; text-align: center; padding: 5px; color: #000;">
+                <img src="${LOGO_URL}" style="width: 90px; margin-bottom: 2px;">
+
+                <div style="font-size: 16px; font-weight: bold; line-height: 1.1; margin-bottom: 2px;">
+                    Istiqbolli ta'lim
                 </div>
-                <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
-                <p>СПАСИБО ЗА ОПЛАТУ!</p>
+                <div style="font-size: 13px; line-height: 1.2;">
+                    "NTM ISTIQBOLLI TA'LIM"<br>
+                    xususiy maktab
+                </div>
+
+                <div style="border-top: 1px dashed #000; margin: 10px 0 5px 0;"></div>
+
+                <table style="width: 100%; font-size: 13px; border-collapse: collapse; text-align: left;">
+                    <tr>
+                        <td style="padding: 2px 0; vertical-align: top; width: 40%;">To'lovchi:</td>
+                        <td style="padding: 2px 0; font-weight: bold; text-align: right;">${studentName}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0;">To'lov summasi:</td>
+                        <td style="padding: 2px 0; text-align: right;">${amount}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0;">To'lov turi:</td>
+                        <td style="padding: 2px 0; text-align: right;">${paymentTypeDisplay}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0;">Sana:</td>
+                        <td style="padding: 2px 0; text-align: right;">${currentDate}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 2px 0;">Izoh:</td>
+                        <td style="padding: 2px 0; text-align: right;">${note ? note : ''}</td>
+                    </tr>
+                </table>
+
+                <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+
+                <div style="font-size: 14px; font-weight: bold; margin-top: 5px;">
+                    @istiqbolli_talim
+                </div>
+                <div style="font-size: 13px;">
+                    +99895 411 20 20
+                </div>
             </div>
         `,
         options: {
-            dotDensity: "double"
+            dotDensity: "double",
+            interpolation: "ordered"
         }
-    }
-];
+    }];
 
             return await qz.print(config, data);
 
