@@ -675,6 +675,20 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
 
       return  context
 
+
+def get_room_inventory(request, room_id):
+   # Получаем все предметы для конкретного кабинета
+   items = Inventory.objects.filter(cabinet_id=room_id,archive=False).select_related('item_type')
+
+   data = []
+   for i in items:
+      data.append({
+         'name': i.item_type.name,
+         'quantity': i.quantity,
+         'id': i.id
+      })
+
+   return JsonResponse({'items': data})
 class Inventory_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'inventory.html'

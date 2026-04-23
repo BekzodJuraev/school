@@ -626,10 +626,7 @@
         <div id="total-rooms-count" style="font-size: 1.5rem; font-weight: bold; color: #5a5c69;">0</div>
     </div>
 
-    <div class="stat-box" style="background: white; padding: 20px; border-radius: 12px; border-left: 5px solid #f6c23e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-        <div style="font-size: 0.8rem; color: #f6c23e; font-weight: bold; text-transform: uppercase;">В ремонте</div>
-        <div style="font-size: 1.5rem; font-weight: bold; color: #5a5c69;">14</div>
-    </div>
+
 
     <div class="stat-box" style="background: white; padding: 20px; border-radius: 12px; border-left: 5px solid #e74a3b; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
         <div style="font-size: 0.8rem; color: #e74a3b; font-weight: bold; text-transform: uppercase;">Списано (Архив)</div>
@@ -645,7 +642,7 @@
   <div id="section-rooms" class="tab-content active">
     <div class="summary-grid" id="room-grid">
         {% for item in cabinet %}
-      <div class="summary-card" onclick="openRoom('{{item.name}}', 1)" style="cursor: pointer;">
+      <div class="summary-card" onclick="openRoom('{{item.name}}', {{item.id}})" style="cursor: pointer;">
         <div class="summary-title">{{item.name}}</div>
           {% if  item.total_item %}
         <div class="summary-value">{{item.total_item}}<span class="summary-unit">ед.</span></div>
@@ -845,20 +842,43 @@ function handleFloatingBtn() {
     }
 }
 
-function openRoom(name, id) {
+async function openRoom(name, id) {
     currentRoomId = id;
     showSection('details');
     document.getElementById('current-room-label').innerText = "Инвентарь: " + name;
-    renderFastCatalog()
-    // Здесь будет загрузка данных через fetch
+    renderFastCatalog();
+
     const tbody = document.getElementById('inventory-items');
-    tbody.innerHTML = `
-        <tr>
-            <td>Столы по дереву</td>
-            <td><b>5</b></td>
-            <td><button class="btn delete">Списать</button></td>
-        </tr>
-    `;
+
+    // Показываем индикатор загрузки, пока ждем ответ
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Загрузка...</td></tr>';
+
+    try {
+        // Отправляем запрос к Django
+        const response = await fetch(`/get-inventory/${id}/`);
+        const data = await response.json();
+
+        tbody.innerHTML = ''; // Очищаем таблицу
+
+        if (data.items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">В этом кабинете пока пусто</td></tr>';
+        } else {
+            data.items.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td><b class="qty-val">${item.quantity}</b></td>
+                    <td>
+                        <button class="btn delete" onclick="deleteItem(${item.id})">Списать</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        tbody.innerHTML = '<tr><td colspan="3" style="color:red; text-align:center;">Ошибка при загрузке данных</td></tr>';
+    }
 }
 
 function openModal(id) { document.getElementById(id).classList.add('active'); }
