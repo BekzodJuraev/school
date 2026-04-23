@@ -27,7 +27,7 @@ from django.db.models import Sum,Q,Count,F,Max,Prefetch,Value
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
-from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment
+from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items
 from django.utils import timezone
 
 from decimal import Decimal
@@ -674,6 +674,21 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
 
 
       return  context
+
+class Inventory_view(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'inventory.html'
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['cabinet']=Inventory_cabinet.objects.annotate(total_item=Count('items')).order_by("-id")
+
+      context['items']=Inventory_items.objects.all()
+      context['archive']=Inventory.objects.filter(archive=True).select_related("cabinet","item_type")
+
+
+
+      return context
 
 
 class Kassa_sadik_view(LoginRequiredMixin,TemplateView):

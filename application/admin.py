@@ -1,7 +1,18 @@
 from django.contrib import admin
-from .models import Profile,Staff,Student,Warehouse,Invoice,Payment
+from .models import Profile,Staff,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items
 from django.utils.html import format_html
 
+@admin.register(Inventory)
+class Inventory(admin.ModelAdmin):
+    pass
+
+@admin.register(Inventory_cabinet)
+class Inventory_cabinet(admin.ModelAdmin):
+    pass
+
+@admin.register(Inventory_items)
+class Inventory_items(admin.ModelAdmin):
+    pass
 
 
 @admin.register(Payment)

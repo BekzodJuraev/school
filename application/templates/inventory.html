@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ШколаCRM — Учёт склада</title>
+<style>
+  /* === Your base styles === */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f6fa;
+    color: #222;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background-color: #1e1e2f;
+    width: 240px;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    box-shadow: inset 2px 0 8px #00000055;
+    transition: width 0.3s ease;
+    user-select: none;
+    position: relative;
+  }
+  .sidebar.collapsed {
+    width: 70px;
+  }
+  .sidebar h2 {
+    font-size: 24px;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: white;
+    user-select: text;
+  }
+  .menu {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .menu-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #2a2a40;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 0 8px #00000044;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    user-select: none;
+  }
+  .menu-link:hover {
+    background-color: #3b3b5a;
+    color: #ffcc00;
+  }
+  .menu-link.active {
+    background-color: #4e73df;
+    color: white;
+    box-shadow: 0 0 15px #4e73dfaa;
+  }
+  .sidebar.collapsed .menu-link span.text {
+    display: none;
+  }
+  .menu-link .icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+  .sidebar-toggle {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4e73df;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    color: white;
+    box-shadow: 0 0 10px #4e73dfaa;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .sidebar-toggle:hover {
+    background-color: #3563c6;
+    box-shadow: 0 0 20px #5a8bffcc;
+  }
+
+  /* Main wrapper */
+  .main-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    padding: 2.5rem 3rem;
+    color: #222;
+    position: relative;
+  }
+
+  /* Top bar */
+  header.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+  }
+  header.top-bar h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #4e73df;
+  }
+  .user-info {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #666;
+    user-select: none;
+  }
+
+  /* Summary cards grid */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 20px;
+    margin-bottom: 3rem;
+    width: 100%;
+    margin-top: 20px;
+  }
+  @media (max-width: 1200px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 в ряд на планшетах */
+    }
+}
+  .summary-card {
+    background-color: #4e73df;
+    border-radius: 16px;
+    padding: 2rem;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 15px #4e73df88;
+    cursor: default;
+    user-select: none;
+    transition: box-shadow 0.3s ease;
+  }
+  .summary-card:hover {
+    box-shadow: 0 8px 30px #4e73dfcc;
+  }
+  .summary-title {
+    font-weight: 700;
+    font-size: 1.4rem;
+    margin-bottom: 0.8rem;
+  }
+  .summary-value {
+    font-weight: 900;
+    font-size: 3.5rem;
+    letter-spacing: 0.06em;
+  }
+  .summary-unit {
+    font-weight: 700;
+    font-size: 1.6rem;
+    margin-left: 0.3rem;
+  }
+
+  /* Tabs nav */
+  .tabs {
+    display: flex;
+    border-bottom: 3px solid #4e73df;
+    margin-bottom: 2rem;
+  }
+  .tabs button {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 1.2rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 4px solid transparent;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    user-select: none;
+  }
+  .tabs button.active,
+  .tabs button:hover:not(:disabled) {
+    color: #4e73df;
+    border-bottom-color: #4e73df;
+  }
+  .tabs button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* Tab content */
+  .tab-content {
+    display: none;
+    animation: fadeIn 0.35s ease forwards;
+  }
+  .tab-content.active {
+    display: block;
+  }
+  @keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 16px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  thead tr th {
+    background: #4e73df;
+    color: white;
+    padding: 1rem 1.8rem;
+    font-weight: 700;
+    text-align: left;
+    user-select: none;
+  }
+  tbody tr {
+    background: #f9f9f9;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+  }
+  tbody tr:hover {
+    background: #e2eaff;
+  }
+  tbody tr td {
+    padding: 1rem 1.5rem;
+    vertical-align: middle;
+    color: #333;
+  }
+  tbody tr td img {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    object-fit: cover;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .btn.edit {
+    background-color: #36b9cc;
+    color: white;
+    margin-right: 0.5rem;
+    box-shadow: 0 0 8px #36b9ccaa;
+  }
+  .btn.edit:hover {
+    background-color: #2a9db0;
+    box-shadow: 0 0 15px #2a9db0cc;
+  }
+  .btn.delete {
+    background-color: #e74a3b;
+    color: white;
+    box-shadow: 0 0 8px #e74a3bcc;
+  }
+  .btn.delete:hover {
+    background-color: #c0392b;
+    box-shadow: 0 0 15px #c0392bcc;
+  }
+
+  /* Floating add button */
+  .btn-add-floating {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    background-color: #4e73df;
+    border: none;
+    color: white;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 32px;
+    font-weight: 700;
+    box-shadow: 0 0 20px #4e73dfcc;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-add-floating:hover {
+    background-color: #3563c6;
+    box-shadow: 0 0 30px #5a8bffcc;
+  }
+
+  /* Notifications form */
+  form.notifications-form {
+    max-width: 600px;
+    background: white;
+    padding: 2rem 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 0 20px #4e73df44;
+    user-select: none;
+  }
+  form.notifications-form h3 {
+    font-weight: 700;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #4e73df;
+  }
+  form.notifications-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    color: #555;
+  }
+  form.notifications-form input[type=number] {
+    width: 100%;
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    border: 1px solid #ccc;
+    font-weight: 600;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    color: #333;
+    box-shadow: inset 0 0 8px #4e73df44;
+    transition: box-shadow 0.3s ease;
+  }
+  form.notifications-form input[type=number]:focus {
+    outline: none;
+    box-shadow: inset 0 0 12px #4e73dfcc;
+  }
+  form.notifications-form button {
+    margin-top: 1.8rem;
+    width: 100%;
+    background: #4e73df;
+    border: none;
+    padding: 1.2rem 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: white;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 0 25px #4e73dfcc;
+    transition: background-color 0.3s ease;
+  }
+  form.notifications-form button:hover {
+    background-color: #3563c6;
+  }
+
+  /* Modal overlay */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+    user-select: none;
+  }
+  .modal.active {
+    display: flex;
+  }
+  .modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    max-width: 500px;
+    width: 90vw;
+    box-shadow: 0 0 25px #4e73dfaa;
+    position: relative;
+    user-select: text;
+  }
+  .modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #4e73df;
+    font-weight: 700;
+  }
+  .modal-content label {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    color: #444;
+  }
+  .modal-content input[type=text],
+  .modal-content input[type=number],
+  .modal-content select {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.2rem;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    background-color: #f9f9f9;
+    color: #222;
+    box-shadow: inset 0 0 8px #4e73df44;
+    transition: box-shadow 0.3s ease;
+  }
+  .modal-content input[type=text]:focus,
+  .modal-content input[type=number]:focus,
+  .modal-content select:focus {
+    outline: none;
+    box-shadow: inset 0 0 12px #4e73dfcc;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  .modal-actions button {
+    padding: 0.6rem 1.6rem;
+    font-weight: 700;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    user-select: none;
+  }
+  .modal-actions .btn-cancel {
+    background: #ddd;
+    color: #555;
+  }
+  .modal-actions .btn-cancel:hover {
+    background: #ccc;
+  }
+  .modal-actions .btn-primary {
+    background: #4e73df;
+    color: white;
+    box-shadow: 0 0 15px #4e73dfaa;
+  }
+  .modal-actions .btn-primary:hover {
+    background: #3563c6;
+  }
+  /* Responsive */
+  @media (max-width: 900px) {
+    .summary-grid {
+      grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
+    }
+  }
+  @media (max-width: 700px) {
+    body {
+      flex-direction: column;
+    }
+    .sidebar {
+      width: 100%;
+      height: 60px;
+      padding: 0 1rem;
+      flex-direction: row;
+      align-items: center;
+      box-shadow: inset 0 -2px 10px #00000022;
+    }
+    .sidebar.collapsed {
+      width: 100%;
+    }
+    .sidebar h2 {
+      display: none;
+    }
+    .menu {
+      flex-direction: row;
+      gap: 0.5rem;
+      width: 100%;
+      justify-content: space-around;
+    }
+    .menu-link {
+      flex: 1;
+      justify-content: center;
+      padding: 0.6rem 0;
+      font-size: 0.9rem;
+      border-radius: 12px 12px 0 0;
+    }
+    .sidebar-toggle {
+      display: none;
+    }
+    header.top-bar {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .main-wrapper {
+      padding: 1rem 1.5rem;
+    }
+    table, thead, tbody, th, td, tr {
+      display: block;
+      width: 100%;
+    }
+    thead tr th {
+      display: none;
+    }
+    tbody tr {
+      margin-bottom: 1.5rem;
+      border-radius: 12px;
+      background: #f9f9f9;
+      padding: 1rem;
+    }
+    tbody tr td {
+      padding-left: 50%;
+      position: relative;
+      text-align: right;
+    }
+    tbody tr td::before {
+      content: attr(data-label);
+      position: absolute;
+      left: 1rem;
+      width: 45%;
+      font-weight: 700;
+      color: #555;
+      text-align: left;
+    }
+    tbody tr td img {
+      margin: 0 0 0 auto;
+      display: block;
+    }
+  }
+  .modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+}
+.catalog-chip {
+  background: #4e73df;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  user-select: none;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.catalog-chip:hover {
+  background: #2e59d9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(78, 115, 223, 0.4);
+}
+
+.catalog-chip:active {
+  transform: scale(0.95);
+}
+
+/* Эффект подсвечивания строки при добавлении */
+@keyframes highlight {
+  0% { background: #e2eaff; }
+  100% { background: #f9f9f9; }
+}
+.new-row-anim {
+  animation: highlight 1.5s ease-out;
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar" aria-label="Навигация по сайту">
+  <h2>🏫 ШколаCRM</h2>
+  <nav class="menu" aria-label="Главное меню">
+  <a href="{% url 'dashboard' %}" class="menu-link" > 🏠 Панель</a>
+       {% if request.user.profile.position == 'admin' %}
+      <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+      <a href="{% url 'report' %}" class="menu-link ">📈 Отчет</a>
+       <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
+      <a href="{% url 'kassa_sadik' %}" class="menu-link   ">📊 Касса(Cадик)</a>
+        <a href="{% url 'discount' %}" class="menu-link ">💸 Скидки</a>
+         <a href="{% url 'warehouse' %}" class="menu-link">📁 Склад</a>
+
+   <a href="{% url  'kitchen' %}" class="menu-link">🍽️ Кухня</a>
+       <a href="{% url  'inventory' %}" class="menu-link active ">📋 Инвентаризация</a>
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+
+      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+     <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+
+      {% endif %}
+
+
+  </nav>
+  <button class="sidebar-toggle" aria-label="Свернуть меню" id="sidebarToggle">⇤</button>
+</aside>
+
+<!-- Main content -->
+
+
+<div class="main-wrapper" role="main">
+  <header class="top-bar">
+    <h1>Учёт имущества</h1>
+    <div class="user-info">{{request.user.profile.lastname}} {{request.user.profile.name}}</div>
+  </header>
+<div class="inventory-stats-overview" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 25px;">
+    <div class="stat-box" style="background: white; padding: 20px; border-radius: 12px; border-left: 5px solid #4e73df; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="font-size: 0.8rem; color: #4e73df; font-weight: bold; text-transform: uppercase;">Всего предметов</div>
+        <div id="total-items-count" style="font-size: 1.5rem; font-weight: bold; color: #5a5c69;">0</div>
+    </div>
+
+    <div class="stat-box" style="background: white; padding: 20px; border-radius: 12px; border-left: 5px solid #1cc88a; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="font-size: 0.8rem; color: #1cc88a; font-weight: bold; text-transform: uppercase;">Активных кабинетов</div>
+        <div id="total-rooms-count" style="font-size: 1.5rem; font-weight: bold; color: #5a5c69;">0</div>
+    </div>
+
+    <div class="stat-box" style="background: white; padding: 20px; border-radius: 12px; border-left: 5px solid #f6c23e; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="font-size: 0.8rem; color: #f6c23e; font-weight: bold; text-transform: uppercase;">В ремонте</div>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #5a5c69;">14</div>
+    </div>
+
+    <div class="stat-box" style="background: white; padding: 20px; border-radius: 12px; border-left: 5px solid #e74a3b; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="font-size: 0.8rem; color: #e74a3b; font-weight: bold; text-transform: uppercase;">Списано (Архив)</div>
+        <div id="total-archive-count" style="font-size: 1.5rem; font-weight: bold; color: #5a5c69;">0</div>
+    </div>
+</div>
+  <div class="tabs">
+    <button class="active" id="tab-rooms" onclick="showSection('rooms')">📍 Кабинеты</button>
+    <button id="tab-catalog" onclick="showSection('catalog')">📦 Справочник предметов</button>
+    <button id="tab-archive" onclick="showSection('archive')">🗄️ Архив</button>
+  </div>
+
+  <div id="section-rooms" class="tab-content active">
+    <div class="summary-grid" id="room-grid">
+        {% for item in cabinet %}
+      <div class="summary-card" onclick="openRoom('{{item.name}}', 1)" style="cursor: pointer;">
+        <div class="summary-title">{{item.name}}</div>
+          {% if  item.total_item %}
+        <div class="summary-value">{{item.total_item}}<span class="summary-unit">ед.</span></div>
+          {% else %}
+          <div class="summary-value">0<span class="summary-unit">ед.</span></div>
+          {% endif %}
+      </div>
+        {% endfor %}
+
+
+    </div>
+  </div>
+       <div id="section-details" class="tab-content">
+  <button class="btn edit" onclick="showSection('rooms')" style="margin-bottom: 1rem;">← Назад</button>
+  <h2 id="current-room-label" style="color: #4e73df;"></h2>
+
+  <div class="quick-add-panel" style="background: #f8f9fc; padding: 1.5rem; border-radius: 12px; border: 2px dashed #d1d3e2; margin-bottom: 2rem;">
+    <h4 style="margin-top: 0; color: #5a5c69;">📦 Быстрое добавление</h4>
+    <div class="drag-items-container" id="fast-catalog" style="display: flex; gap: 10px; flex-wrap: wrap;">
+      </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Название</th>
+        <th style="width: 100px;">Кол-во</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody id="inventory-items">
+      </tbody>
+  </table>
+</div>
+
+  <div id="section-catalog" class="tab-content">
+    <div class="notifications-form" style="max-width: 100%; margin-bottom: 2rem;">
+        <h3>Добавить новый тип предмета в систему</h3>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="new-item-name" placeholder="Название (например: Ноутбук HP)" style="flex: 1;">
+            <button class="btn edit" style="width: 200px; margin: 0;" onclick="addItemToCatalog()">Добавить в список</button>
+        </div>
+    </div>
+    <table>
+        <thead>
+            <tr><th>Название предмета</th><th>Действие</th></tr>
+        </thead>
+        <tbody id="catalog-list">
+            {% for item in items %}
+            <tr><td>{{item.name}}</td><td><button class="btn delete">Удалить</button></td></tr>
+        {% endfor %}
+
+        </tbody>
+    </table>
+  </div>
+
+  <div id="section-details" class="tab-content">
+    <button class="btn edit" onclick="showSection('rooms')" style="margin-bottom: 1rem;">← Назад</button>
+    <h2 id="current-room-label"></h2>
+
+    <table>
+      <thead>
+        <tr><th>Название</th><th>Кол-во</th><th>Действия</th></tr>
+      </thead>
+      <tbody id="inventory-items"></tbody>
+    </table>
+  </div>
+
+  <div id="section-archive" class="tab-content">
+    <h3>Архив списания</h3>
+    <table id="archive-table">
+        <thead><tr><th>Предмет</th><th>Кабинет</th><th>Количество</th> <th>Дата</th> <th>Причина</th></tr>
+        </thead>
+        <tbody>
+        {% for item in archive %}
+        <tr>
+            <td>{{item.item_type.name}}</td>
+            <td>{{item.cabinet.name}}</td>
+            <td>{{item.quantity}}</td>
+            <td>{{item.created_at|date:'d.m.Y'}}</td>
+            <td>{{item.comment}}</td>
+
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+  </div>
+
+  <button class="btn-add-floating" onclick="handleFloatingBtn()">+</button>
+</div>
+
+<div class="modal" id="addAssetModal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2 id="modal-title">Добавить в кабинет</h2>
+    <form id="assetForm">
+      <label>Выберите предмет из справочника</label>
+      <select id="asset-select" required>
+        <option value="">-- Выберите --</option>
+        <option value="Столы по дереву">Столы по дереву</option>
+        <option value="Шкаф">Шкаф</option>
+        <option value="Стулья">Стулья</option>
+      </select>
+
+      <label>Количество</label>
+      <input type="number" id="asset-qty" value="1" required>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal()">Отмена</button>
+        <button type="submit" class="btn-primary">Добавить</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="modal" id="roomModal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <h2>Новый кабинет</h2>
+        <label>Название кабинета</label>
+        <input type="text" id="new-room-name-input" placeholder="Например: Кабинет химии" required>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+            <button class="btn-primary" onclick="saveNewRoom()">Создать кабинет</button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+const catalog = [
+{% for item in items %}
+"{{item.name }}",
+{% endfor %}
+];
+
+// Отрисовка панели быстрых кнопок
+function renderFastCatalog() {
+    const container = document.getElementById('fast-catalog');
+    container.innerHTML = catalog.map(item => `
+        <button class="catalog-chip" onclick="quickAddItem('${item}')">
+            + ${item}
+        </button>
+    `).join('');
+}
+
+// Функция мгновенного добавления
+function quickAddItem(name) {
+    const tbody = document.getElementById('inventory-items');
+
+    // Ищем, есть ли уже такая строка в таблице
+    let existingRow = Array.from(tbody.rows).find(row => row.cells[0].innerText.includes(name));
+
+    if (existingRow) {
+        // Если предмет есть, просто увеличиваем количество
+        let qtyInput = existingRow.querySelector('.qty-val');
+        qtyInput.innerText = parseInt(qtyInput.innerText) + 1;
+
+        // Визуальный эффект обновления
+        existingRow.classList.add('new-row-anim');
+        setTimeout(() => existingRow.classList.remove('new-row-anim'), 1500);
+    } else {
+        // Если предмета нет, создаем новую строку
+        const row = document.createElement('tr');
+        row.className = 'new-row-anim';
+        row.innerHTML = `
+            <td>${name}</td>
+            <td><b class="qty-val">1</b></td>
+            <td>
+                <button class="btn delete" onclick="this.closest('tr').remove()">Списать</button>
+            </td>
+        `;
+        tbody.prepend(row); // Добавляем в начало списка
+    }
+}
+
+  let currentRoomId = null;
+
+function showSection(sectionId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tabs button').forEach(el => el.classList.remove('active'));
+
+    document.getElementById('section-' + sectionId).classList.add('active');
+    const tabBtn = document.getElementById('tab-' + sectionId);
+    if(tabBtn) tabBtn.classList.add('active');
+
+    if (sectionId === 'rooms') currentRoomId = null;
+}
+
+// Если мы в кабинете — добавляем вещь, если в списке — добавляем кабинет
+function handleFloatingBtn() {
+    if (currentRoomId) {
+        // Мы внутри кабинета, открываем выбор предмета
+        openModal('addAssetModal');
+    } else {
+        openModal('roomModal');
+    }
+}
+
+function openRoom(name, id) {
+    currentRoomId = id;
+    showSection('details');
+    document.getElementById('current-room-label').innerText = "Инвентарь: " + name;
+    renderFastCatalog()
+    // Здесь будет загрузка данных через fetch
+    const tbody = document.getElementById('inventory-items');
+    tbody.innerHTML = `
+        <tr>
+            <td>Столы по дереву</td>
+            <td><b>5</b></td>
+            <td><button class="btn delete">Списать</button></td>
+        </tr>
+    `;
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
+
+function addItemToCatalog() {
+    const name = document.getElementById('new-item-name').value;
+    if(name) {
+        const tbody = document.getElementById('catalog-list');
+        tbody.innerHTML += `<tr><td>${name}</td><td><button class="btn delete">Удалить</button></td></tr>`;
+
+        // Сразу добавляем в Select модалки
+        const select = document.getElementById('asset-select');
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.innerHTML = name;
+        select.appendChild(opt);
+
+        document.getElementById('new-item-name').value = '';
+    }
+}
+</script>
+
+
+
+</body>
+</html>

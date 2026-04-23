@@ -15,6 +15,7 @@ urlpatterns=[
     path('warehouse/',views.Warehouse_View.as_view(),name='warehouse'),
     path('kassa/',views.Kassa_view.as_view(),name='kassa'),
     path('kassa_sadik/',views.Kassa_sadik_view.as_view(),name='kassa_sadik'),
+    path('inventory/',views.Inventory_view.as_view(),name="inventory"),
 
     path("student/<int:pk>/more/", views.student_more, name="student_more"),
     path('discount/',views.Discount_view.as_view(),name='discount'),
