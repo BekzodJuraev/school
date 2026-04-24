@@ -1,4 +1,5 @@
 {% load humanize %}
+{% load static %}
 {% if request.user.profile.approve %}
 <!DOCTYPE html>
 <html lang="ru">
@@ -6,6 +7,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Школьная CRM Панель</title>
+  <link rel="shortcut icon"  type="image/png" href="{% static 'logo.png' %}?v=1.1">
   <style>
     * {
       margin: 0;
