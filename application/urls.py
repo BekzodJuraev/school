@@ -17,7 +17,9 @@ urlpatterns=[
     path('kassa_sadik/',views.Kassa_sadik_view.as_view(),name='kassa_sadik'),
     path('inventory/',views.Inventory_view.as_view(),name="inventory"),
     path('get-inventory/<int:room_id>/', views.get_room_inventory, name='get_inventory'),
-
+    path('api/create-cabinet/', views.create_cabinet_api, name='create-cabinet'),
+    path('api/create-item/', views.items_api, name='create-item'),
+    path('api/create-item/<int:item_id>/', views.items_api, name='delete-item'),
     path("student/<int:pk>/more/", views.student_more, name="student_more"),
     path('discount/',views.Discount_view.as_view(),name='discount'),
     path('printer/',views.Printer_checkView.as_view(),name='printer'),

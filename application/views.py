@@ -676,6 +676,62 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
       return  context
 
 
+@csrf_exempt  # Для тестов, но лучше использовать CSRF-токен в fetch
+def create_cabinet_api(request):
+   if request.method == "POST":
+      try:
+         data = json.loads(request.body)
+         room_name = data.get('name')
+
+         if room_name:
+            # Создаем запись в БД
+            new_room = Inventory_cabinet.objects.create(name=room_name)
+
+            return JsonResponse({
+               'status': 'success',
+               'id': new_room.id,
+               'name': new_room.name
+            })
+      except Exception as e:
+         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+   return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+@csrf_exempt
+def items_api(request, item_id=None): # Добавили item_id для удаления
+    # --- СОЗДАНИЕ (POST) ---
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            name = data.get('name')
+
+            if name:
+                new_item = Inventory_items.objects.create(name=name)
+                return JsonResponse({
+                    'status': 'success',
+                    'id': new_item.id,
+                    'name': new_item.name
+                })
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    # --- УДАЛЕНИЕ (DELETE) ---
+    elif request.method == "DELETE":
+        try:
+            # Если ID передан в URL или в теле запроса
+            if not item_id:
+                data = json.loads(request.body)
+                item_id = data.get('id')
+
+            item = Inventory_items.objects.get(id=item_id)
+            item.delete()
+            return JsonResponse({'status': 'success', 'message': 'Item deleted'})
+        except Inventory_items.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 def get_room_inventory(request, room_id):
    # Получаем все предметы для конкретного кабинета
    items = Inventory.objects.filter(cabinet_id=room_id,archive=False).select_related('item_type')
@@ -697,7 +753,7 @@ class Inventory_view(LoginRequiredMixin,TemplateView):
       context = super().get_context_data(**kwargs)
       context['cabinet']=Inventory_cabinet.objects.annotate(total_item=Count('items')).order_by("-id")
 
-      context['items']=Inventory_items.objects.all()
+      context['items']=Inventory_items.objects.all().order_by("-id")
       context['archive']=Inventory.objects.filter(archive=True).select_related("cabinet","item_type")
 
 

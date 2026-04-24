@@ -770,6 +770,67 @@
         </div>
     </div>
 </div>
+<script>
+    async function saveNewRoom() {
+    const nameInput = document.getElementById('new-room-name-input');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        alert("Пожалуйста, введите название кабинета");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/create-cabinet/', { // Укажи свой URL
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') // Функция для получения токена (ниже)
+            },
+            body: JSON.stringify({ name: name })
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            // Добавляем новую карточку в UI без перезагрузки
+            const grid = document.getElementById('room-grid');
+            const newCard = `
+                <div class="summary-card" onclick="openRoom('${result.name}', ${result.id})" style="cursor: pointer;">
+                    <div class="summary-title">${result.name}</div>
+                    <div class="summary-value">0<span class="summary-unit">ед.</span></div>
+                </div>
+            `;
+            grid.insertAdjacentHTML('afterbegin', newCard);
+
+            // Закрываем модалку и очищаем поле
+            closeModal();
+            nameInput.value = '';
+        } else {
+            alert("Ошибка при сохранении: " + result.message);
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert("Произошла ошибка при отправке данных");
+    }
+}
+
+// Вспомогательная функция для CSRF токена (стандарт для Django)
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
 
 <script>
 
@@ -884,20 +945,64 @@ async function openRoom(name, id) {
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
 
-function addItemToCatalog() {
-    const name = document.getElementById('new-item-name').value;
-    if(name) {
-        const tbody = document.getElementById('catalog-list');
-        tbody.innerHTML += `<tr><td>${name}</td><td><button class="btn delete">Удалить</button></td></tr>`;
+async function addItemToCatalog() {
+    const input = document.getElementById('new-item-name');
+    const name = input.value.trim();
 
-        // Сразу добавляем в Select модалки
-        const select = document.getElementById('asset-select');
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.innerHTML = name;
-        select.appendChild(opt);
+    if (!name) {
+        alert("Введите название предмета");
+        return;
+    }
 
-        document.getElementById('new-item-name').value = '';
+    try {
+        // 1. Отправляем данные в твой @csrf_exempt вью
+        const response = await fetch('/api/create-item/', { // Проверь этот URL в urls.py
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ name: name })
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            // 2. Если в базе создано, обновляем таблицу справочника
+            const tbody = document.getElementById('catalog-list');
+            tbody.innerHTML += `
+                <tr id="catalog-item-${result.id}">
+                    <td>${result.name}</td>
+                    <td><button class="btn delete" onclick="deleteFromCatalog(${result.id})">Удалить</button></td>
+                </tr>`;
+
+            // 3. Добавляем в Select модалки (для выбора в кабинет)
+            const select = document.getElementById('asset-select');
+            if (select) {
+                const opt = document.createElement('option');
+                opt.value = result.name; // Можно использовать result.id, если модель Inventory ждет ID
+                opt.innerHTML = result.name;
+                select.appendChild(opt);
+            }
+
+            // 4. Также обновляем кнопки "Быстрого добавления" (Fast Catalog)
+            const fastCatalog = document.getElementById('fast-catalog');
+            if (fastCatalog) {
+                fastCatalog.innerHTML += `
+                    <button class="catalog-chip" onclick="quickAddItem('${result.name}')">
+                        + ${result.name}
+                    </button>`;
+            }
+
+            // Очищаем поле
+            input.value = '';
+
+        } else {
+            alert("Ошибка сервера: " + result.message);
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert("Не удалось связаться с сервером");
     }
 }
 </script>
