@@ -723,8 +723,20 @@ def items_api(request, item_id=None): # Добавили item_id для удал
                 data = json.loads(request.body)
                 item_id = data.get('id')
 
-            item = Inventory_items.objects.get(id=item_id)
-            item.delete()
+            is_used = Inventory.objects.filter(item_type_id=item_id).exists()
+
+            if is_used:
+               # Если товар где-то числится, возвращаем ошибку, а не успех
+               return JsonResponse({
+                  'status': 'error',
+                  'message': 'Нельзя удалить: этот товар числится в кабинетах. Сначала спишите его оттуда.'
+               }, status=400)  # 400 - Bad Request
+
+            # 2. Если не используется — удаляем
+            deleted_count, _ = Inventory_items.objects.filter(id=item_id).delete()
+
+
+
             return JsonResponse({'status': 'success', 'message': 'Item deleted'})
         except Inventory_items.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
@@ -751,10 +763,19 @@ class Inventory_view(LoginRequiredMixin,TemplateView):
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
-      context['cabinet']=Inventory_cabinet.objects.annotate(total_item=Count('items')).order_by("-id")
+      context['cabinet']=cabinet = Inventory_cabinet.objects.prefetch_related(
+    "items"
+).annotate(
+    total_item=Count('items', filter=Q(items__archive=False))
+).order_by("-id")
 
       context['items']=Inventory_items.objects.all().order_by("-id")
       context['archive']=Inventory.objects.filter(archive=True).select_related("cabinet","item_type")
+      context['total_cabinet']=Inventory_cabinet.objects.all().count()
+      context['total_items']=Inventory.objects.filter(archive=False).values("item_type__name").aggregate(total_items=Sum("quantity"))['total_items'] or 0
+      context['total_archive'] = \
+      Inventory.objects.filter(archive=True).values("item_type__name").aggregate(total_items=Sum("quantity"))[
+         'total_items'] or 0
 
 
 
