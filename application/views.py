@@ -697,6 +697,94 @@ def create_cabinet_api(request):
 
    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+
+
+@csrf_exempt  # Для тестов, но лучше использовать CSRF-токен в fetch
+def create_itemincabinet_api(request, cabinet_id=None, item_id=None):
+   if request.method == "POST":
+      try:
+         data = json.loads(request.body)
+         item_type_id = data.get('item_id')
+         quantity = int(data.get('quantity', 1))
+
+         # 1. Ищем ЛЮБУЮ существующую активную запись этого предмета в этом кабинете
+         obj = Inventory.objects.filter(
+            cabinet_id=cabinet_id,
+            item_type_id=item_type_id,
+            archive=False
+         ).first()
+
+         if obj:
+            # Если нашли — просто плюсуем
+            obj.quantity += quantity
+            obj.save()
+            created = False
+         else:
+            # Если вообще нет — создаем новую
+            obj = Inventory.objects.create(
+               cabinet_id=cabinet_id,
+               item_type_id=item_type_id,
+               quantity=quantity,
+               archive=False
+            )
+            created = True
+
+         return JsonResponse({
+            'status': 'success',
+            'id': obj.id,
+            'name': obj.item_type.name,
+            'quantity': obj.quantity,
+            'is_new': created,
+            'item_type_id': item_type_id  # Обязательно возвращаем это!
+         })
+      except Exception as e:
+         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+   # --- СПИСАНИЕ ПРЕДМЕТА (PATCH) ---
+   elif request.method == "PATCH":
+      try:
+         data = json.loads(request.body)
+         comment = data.get('comment', 'Причина не указана')
+         qty_to_archive = int(data.get('quantity', 1))
+
+         item = Inventory.objects.get(id=item_id)
+
+         completely_removed = False
+         remaining_qty = item.quantity - qty_to_archive
+
+         if remaining_qty <= 0:
+            # Списываем всю запись полностью
+            item.archive = True
+            item.comment = comment
+            item.save()
+            completely_removed = True
+         else:
+            print("hello world")
+            # Уменьшаем количество текущей записи
+            item.quantity = remaining_qty
+            item.save()
+
+            # (Опционально) Создаем отдельную архивную запись для истории
+            # Чтобы в архиве было видно, что списано именно X штук
+            Inventory.objects.create(
+               cabinet=item.cabinet,
+               item_type=item.item_type,
+               quantity=qty_to_archive,
+               archive=True,
+               comment=comment
+            )
+
+         return JsonResponse({
+            'status': 'success',
+            'completely_removed': completely_removed,
+            'remaining_qty': remaining_qty,
+            'id': item_id
+         })
+      except Exception as e:
+         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+   return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
 @csrf_exempt
 def items_api(request, item_id=None): # Добавили item_id для удаления
     # --- СОЗДАНИЕ (POST) ---
@@ -746,14 +834,15 @@ def items_api(request, item_id=None): # Добавили item_id для удал
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 def get_room_inventory(request, room_id):
    # Получаем все предметы для конкретного кабинета
-   items = Inventory.objects.filter(cabinet_id=room_id,archive=False).select_related('item_type')
+   items = Inventory.objects.filter(cabinet_id=room_id, archive=False).select_related('item_type')
 
    data = []
    for i in items:
       data.append({
          'name': i.item_type.name,
          'quantity': i.quantity,
-         'id': i.id
+         'id': i.id,
+         'item_type_id': i.item_type.id  # ОБЯЗАТЕЛЬНО: для связи с кнопками быстрого добавления
       })
 
    return JsonResponse({'items': data})

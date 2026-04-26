@@ -749,7 +749,7 @@
       <select id="asset-select" required>
         <option value="">-- Выберите --</option>
           {% for item in items %}
-        <option value="{{item.name}}">{{item.name}}</option>
+        <option value="{{item.id}}">{{item.name}}</option>
           {% endfor %}
 
       </select>
@@ -777,6 +777,89 @@
         </div>
     </div>
 </div>
+<script>
+
+    function updateGlobalItemCount(diff) {
+    const totalCountElement = document.getElementById('total-items-count');
+    if (totalCountElement) {
+        let currentCount = parseInt(totalCountElement.innerText) || 0;
+        totalCountElement.innerText = currentCount + diff;
+    }
+}
+document.getElementById('assetForm').addEventListener('submit', async function(e) {
+    e.preventDefault(); // Отменяем стандартную перезагрузку страницы
+
+    const select = document.getElementById('asset-select');
+    const qtyInput = document.getElementById('asset-qty');
+
+    const itemTypeId = select.value;
+    const quantity = parseInt(qtyInput.value);
+    const itemName = select.options[select.selectedIndex].text;
+
+    if (!currentRoomId) return alert("Выберите кабинет!");
+
+    try {
+        const response = await fetch(`/api/inventory/cabinet/${currentRoomId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                item_id: itemTypeId,
+                quantity: quantity
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            const tbody = document.getElementById('inventory-items');
+
+            // Убираем заглушку "Пусто"
+            const emptyRow = document.getElementById('empty-row');
+            if (emptyRow) emptyRow.remove();
+
+            // Ищем, есть ли уже такой предмет в таблице
+            let existingRow = Array.from(tbody.querySelectorAll('tr')).find(row =>
+                row.getAttribute('data-item-type-id') == itemTypeId
+            );
+
+            if (existingRow) {
+                // Обновляем существующую строку
+                let qtyVal = existingRow.querySelector('.qty-val');
+                qtyVal.innerText = result.quantity;
+
+                existingRow.style.backgroundColor = '#d1e7dd';
+                setTimeout(() => existingRow.style.backgroundColor = '', 500);
+            } else {
+                // Создаем новую строку
+                const row = document.createElement('tr');
+                row.setAttribute('data-item-type-id', itemTypeId);
+                row.id = `inv-row-${result.id}`;
+                row.innerHTML = `
+                    <td>${result.name}</td>
+                    <td><b class="qty-val">${result.quantity}</b> ед.</td>
+                    <td>
+                        <button class="btn delete" onclick="archiveItem(${result.id})">Списать</button>
+                    </td>
+                `;
+                tbody.prepend(row);
+            }
+
+            // Обновляем глобальный счетчик (прибавляем введенное количество)
+            updateGlobalItemCount(quantity);
+
+            // Закрываем модалку и сбрасываем форму
+            closeModal();
+            this.reset();
+        }
+    } catch (error) {
+        console.error('Ошибка при добавлении через модалку:', error);
+        alert("Произошла ошибка при сохранении");
+    }
+});
+</script>
 <script>
     async function saveNewRoom() {
     const nameInput = document.getElementById('new-room-name-input');
@@ -809,6 +892,12 @@
                 </div>
             `;
             grid.insertAdjacentHTML('afterbegin', newCard);
+            const countElement = document.getElementById('total-rooms-count');
+    if (countElement) {
+        // Получаем текущее число, прибавляем 1 и записываем обратно
+        let currentCount = parseInt(countElement.innerText) || 0;
+        countElement.innerText = currentCount + 1;
+    }
 
             // Закрываем модалку и очищаем поле
             closeModal();
@@ -841,52 +930,137 @@ function getCookie(name) {
 
 <script>
 
-const catalog = [
-{% for item in items %}
-"{{item.name }}",
-{% endfor %}
+let catalog = [
+    {% for item in items %}
+    { id: {{ item.id }}, name: "{{ item.name|escapejs }}" },
+    {% endfor %}
 ];
 
-// Отрисовка панели быстрых кнопок
 function renderFastCatalog() {
     const container = document.getElementById('fast-catalog');
+    if (!container) return;
+
     container.innerHTML = catalog.map(item => `
-        <button class="catalog-chip" onclick="quickAddItem('${item}')">
-            + ${item}
+        <button class="catalog-chip" onclick="quickAddItem('${item.name}', ${item.id})">
+            + ${item.name}
         </button>
     `).join('');
 }
 
-// Функция мгновенного добавления
-function quickAddItem(name) {
+async function quickAddItem(name, itemTypeId) {
     const tbody = document.getElementById('inventory-items');
+    if (!currentRoomId) return alert("Выберите кабинет!");
 
-    // Ищем, есть ли уже такая строка в таблице
-    let existingRow = Array.from(tbody.rows).find(row => row.cells[0].innerText.includes(name));
+    try {
+        const response = await fetch(`/api/inventory/cabinet/${currentRoomId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ item_id: itemTypeId, quantity: 1 })
+        });
 
-    if (existingRow) {
-        // Если предмет есть, просто увеличиваем количество
-        let qtyInput = existingRow.querySelector('.qty-val');
-        qtyInput.innerText = parseInt(qtyInput.innerText) + 1;
+        const result = await response.json();
 
-        // Визуальный эффект обновления
-        existingRow.classList.add('new-row-anim');
-        setTimeout(() => existingRow.classList.remove('new-row-anim'), 1500);
-    } else {
-        // Если предмета нет, создаем новую строку
-        const row = document.createElement('tr');
-        row.className = 'new-row-anim';
-        row.innerHTML = `
-            <td>${name}</td>
-            <td><b class="qty-val">1</b></td>
-            <td>
-                <button class="btn delete" onclick="this.closest('tr').remove()">Списать</button>
-            </td>
-        `;
-        tbody.prepend(row); // Добавляем в начало списка
+        if (result.status === 'success') {
+            const emptyRow = document.getElementById('empty-row');
+            if (emptyRow) emptyRow.remove();
+
+            // Ищем строку ТОЛЬКО внутри активного tbody
+            let existingRow = Array.from(tbody.querySelectorAll('tr')).find(row =>
+                row.getAttribute('data-item-type-id') == itemTypeId
+            );
+
+            if (existingRow) {
+                // ОБНОВЛЕНИЕ: если нашли, просто меняем цифру
+                let qtyInput = existingRow.querySelector('.qty-val');
+                qtyInput.innerText = result.quantity;
+
+                existingRow.style.backgroundColor = '#d1e7dd';
+                setTimeout(() => existingRow.style.backgroundColor = '', 500);
+            } else {
+                // СОЗДАНИЕ: если не нашли, добавляем новую строку
+                const row = document.createElement('tr');
+                row.setAttribute('data-item-type-id', itemTypeId);
+                row.id = `inv-row-${result.id}`;
+
+                row.innerHTML = `
+                    <td>${result.name}</td>
+                    <td><b class="qty-val">${result.quantity}</b> ед.</td>
+                    <td>
+                        <button class="btn delete" onclick="archiveItem(${result.id})">Списать</button>
+                    </td>
+                `;
+                tbody.prepend(row);
+            }
+
+            updateGlobalItemCount(1);
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
     }
 }
 
+async function archiveItem(id) {
+    const row = document.getElementById(`inv-row-${id}`);
+    if (!row) return;
+
+    const qtyValElement = row.querySelector('.qty-val');
+    const maxQty = parseInt(qtyValElement.innerText);
+
+    // 1. Спрашиваем количество
+    const qtyToArchive = prompt(`Сколько единиц списать? (Максимум: ${maxQty})`, "1");
+
+    // Проверки ввода
+    if (qtyToArchive === null) return;
+    const qtyInt = parseInt(qtyToArchive);
+    if (isNaN(qtyInt) || qtyInt <= 0 || qtyInt > maxQty) {
+        return alert("Введите корректное количество");
+    }
+
+    // 2. Спрашиваем причину
+    const comment = prompt("Причина списания:");
+    if (!comment) return;
+
+    try {
+        const response = await fetch(`/api/inventory/item/${id}/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                comment: comment,
+                quantity: qtyInt // Передаем количество на сервер
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            if (result.completely_removed) {
+                // Если списали всё — удаляем строку
+                row.remove();
+            } else {
+                // Если что-то осталось — обновляем цифру в таблице
+                qtyValElement.innerText = result.remaining_qty;
+
+                // Визуальный эффект списания
+                row.style.backgroundColor = '#f8d7da';
+                setTimeout(() => row.style.backgroundColor = '', 500);
+            }
+
+            // Вычитаем ровно столько, сколько списали, из глобального счетчика
+            updateGlobalItemCount(-qtyInt);
+
+            // Если таблица опустела
+            if (typeof checkIfEmpty === "function") checkIfEmpty();
+        }
+    } catch (error) {
+        console.error('Ошибка списания:', error);
+    }
+}
   let currentRoomId = null;
 
 function showSection(sectionId) {
@@ -929,15 +1103,23 @@ async function openRoom(name, id) {
         tbody.innerHTML = ''; // Очищаем таблицу
 
         if (data.items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">В этом кабинете пока пусто</td></tr>';
+            tbody.innerHTML = `
+        <tr id="empty-row">
+            <td colspan="3" style="text-align:center; color: #858796; padding: 20px;">
+                В этом кабинете пока пусто
+            </td>
+        </tr>`;
         } else {
             data.items.forEach(item => {
                 const row = document.createElement('tr');
+                row.setAttribute('data-item-type-id', item.item_type_id);
+                row.id = `inv-row-${item.id}`;
                 row.innerHTML = `
                     <td>${item.name}</td>
                     <td><b class="qty-val">${item.quantity}</b></td>
                     <td>
-                        <button class="btn delete" onclick="deleteItem(${item.id})">Списать</button>
+
+                        <button class="btn delete" onclick="archiveItem(${item.id})">Списать</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -975,6 +1157,8 @@ async function addItemToCatalog() {
         const result = await response.json();
 
         if (result.status === 'success') {
+            catalog.push(result.name);
+            console.log("Обновленный каталог:", catalog);
             // 2. Если в базе создано, обновляем таблицу справочника
             const tbody = document.getElementById('catalog-list');
             const rowHTML = `

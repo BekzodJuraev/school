@@ -17,6 +17,8 @@ urlpatterns=[
     path('kassa_sadik/',views.Kassa_sadik_view.as_view(),name='kassa_sadik'),
     path('inventory/',views.Inventory_view.as_view(),name="inventory"),
     path('get-inventory/<int:room_id>/', views.get_room_inventory, name='get_inventory'),
+    path('api/inventory/cabinet/<int:cabinet_id>/', views.create_itemincabinet_api),
+    path('api/inventory/item/<int:item_id>/', views.create_itemincabinet_api),
     path('api/create-cabinet/', views.create_cabinet_api, name='create-cabinet'),
     path('api/create-item/', views.items_api, name='create-item'),
     path('api/delete-item/<int:item_id>/', views.items_api, name='delete-item'),
