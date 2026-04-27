@@ -588,6 +588,7 @@
       <a href="{% url 'report' %}" class="menu-link ">📈 Отчет</a>
        <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
       <a href="{% url 'kassa_sadik' %}" class="menu-link   ">📊 Касса(Cадик)</a>
+      <a href="{% url 'kassa_lager' %}" class="menu-link   ">📊 Касса(Лагерь)</a>
         <a href="{% url 'discount' %}" class="menu-link ">💸 Скидки</a>
          <a href="{% url 'warehouse' %}" class="menu-link">📁 Склад</a>
 
@@ -640,20 +641,18 @@
   </div>
 
   <div id="section-rooms" class="tab-content active">
-    <div class="summary-grid" id="room-grid">
-        {% for item in cabinet %}
-      <div class="summary-card" onclick="openRoom('{{item.name}}', {{item.id}})" style="cursor: pointer;">
-        <div class="summary-title">{{item.name}}</div>
-          {% if  item.total_item %}
-        <div class="summary-value">{{item.total_item}}<span class="summary-unit">ед.</span></div>
-          {% else %}
-          <div class="summary-value">0<span class="summary-unit">ед.</span></div>
-          {% endif %}
+   <div class="summary-grid" id="room-grid">
+  {% for item in cabinet %}
+    <div class="summary-card" id="room-card-{{item.id}}" onclick="openRoom('{{item.name}}', {{item.id}})" style="cursor: pointer;">
+      <div class="summary-title">{{item.name}}</div>
+
+      <div class="summary-value">
+        <span class="room-total-val">{{ item.total_item|default:0 }}</span>
+        <span class="summary-unit">ед.</span>
       </div>
-        {% endfor %}
-
-
     </div>
+  {% endfor %}
+</div>
   </div>
        <div id="section-details" class="tab-content">
   <button class="btn edit" onclick="showSection('rooms')" style="margin-bottom: 1rem;">← Назад</button>
@@ -778,6 +777,42 @@
     </div>
 </div>
 <script>
+async function refreshRoomCard(roomId) {
+   if (!roomId) return;
+
+    try {
+        const response = await fetch(`/api/cabinet-stats/${roomId}/`);
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            // Находим конкретную карточку по ID
+            const card = document.getElementById(`room-card-${roomId}`);
+            if (card) {
+                const valSpan = card.querySelector('.room-total-val');
+                if (valSpan) {
+                    valSpan.innerText = result.total_item;
+
+                    // Эффект "подмигивания" при обновлении
+                    valSpan.style.color = '#2ecc71';
+                    setTimeout(() => valSpan.style.color = '', 500);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка при обновлении сетки:', error);
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('new-item-name');
+
+    input.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addItemToCatalog();
+            input.focus(); // Фокус всегда остается в поле ввода
+        }
+    });
+});
 
     function updateGlobalItemCount(diff) {
     const totalCountElement = document.getElementById('total-items-count');
@@ -849,6 +884,7 @@ document.getElementById('assetForm').addEventListener('submit', async function(e
 
             // Обновляем глобальный счетчик (прибавляем введенное количество)
             updateGlobalItemCount(quantity);
+            refreshRoomCard(currentRoomId);
 
             // Закрываем модалку и сбрасываем форму
             closeModal();
@@ -886,11 +922,13 @@ document.getElementById('assetForm').addEventListener('submit', async function(e
             // Добавляем новую карточку в UI без перезагрузки
             const grid = document.getElementById('room-grid');
             const newCard = `
-                <div class="summary-card" onclick="openRoom('${result.name}', ${result.id})" style="cursor: pointer;">
-                    <div class="summary-title">${result.name}</div>
-                    <div class="summary-value">0<span class="summary-unit">ед.</span></div>
-                </div>
-            `;
+        <div class="summary-card" id="room-card-${result.id}" onclick="openRoom('${result.name}', ${result.id})" style="cursor: pointer;">
+            <div class="summary-title">${result.name}</div>
+            <div class="summary-value">
+                <span class="room-total-val">0</span>
+                <span class="summary-unit">ед.</span>
+            </div>
+        </div>`;
             grid.insertAdjacentHTML('afterbegin', newCard);
             const countElement = document.getElementById('total-rooms-count');
     if (countElement) {
@@ -946,7 +984,13 @@ function renderFastCatalog() {
         </button>
     `).join('');
 }
-
+function updateArchiveCount(amount) {
+    const archiveElement = document.getElementById('total-archive-count');
+    if (archiveElement) {
+        let currentCount = parseInt(archiveElement.innerText) || 0;
+        archiveElement.innerText = currentCount + amount;
+    }
+}
 async function quickAddItem(name, itemTypeId) {
     const tbody = document.getElementById('inventory-items');
     if (!currentRoomId) return alert("Выберите кабинет!");
@@ -985,6 +1029,7 @@ async function quickAddItem(name, itemTypeId) {
                 row.setAttribute('data-item-type-id', itemTypeId);
                 row.id = `inv-row-${result.id}`;
 
+
                 row.innerHTML = `
                     <td>${result.name}</td>
                     <td><b class="qty-val">${result.quantity}</b> ед.</td>
@@ -994,7 +1039,7 @@ async function quickAddItem(name, itemTypeId) {
                 `;
                 tbody.prepend(row);
             }
-
+            refreshRoomCard(currentRoomId);
             updateGlobalItemCount(1);
         }
     } catch (error) {
@@ -1051,8 +1096,9 @@ async function archiveItem(id) {
                 setTimeout(() => row.style.backgroundColor = '', 500);
             }
 
-            // Вычитаем ровно столько, сколько списали, из глобального счетчика
+            updateArchiveCount(qtyInt);
             updateGlobalItemCount(-qtyInt);
+            refreshRoomCard(currentRoomId);
 
             // Если таблица опустела
             if (typeof checkIfEmpty === "function") checkIfEmpty();
@@ -1157,7 +1203,11 @@ async function addItemToCatalog() {
         const result = await response.json();
 
         if (result.status === 'success') {
-            catalog.push(result.name);
+            catalog.push({
+                id: result.id,
+                name: result.name
+            });
+            renderFastCatalog()
             console.log("Обновленный каталог:", catalog);
             // 2. Если в базе создано, обновляем таблицу справочника
             const tbody = document.getElementById('catalog-list');

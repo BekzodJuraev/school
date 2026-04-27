@@ -648,8 +648,8 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
       <a href="{% url 'report' %}" class="menu-link ">📈 Отчет</a>
       {% endif %}
       <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
-    <a href="{% url 'kassa_sadik' %}" class="menu-link  active ">📊 Касса(Cадик)</a>
-      <a href="{% url 'kassa_lager' %}" class="menu-link   ">📊 Касса(Лагерь)</a>
+    <a href="{% url 'kassa_sadik' %}" class="menu-link   ">📊 Касса(Cадик)</a>
+      <a href="{% url 'kassa_lager' %}" class="menu-link  active ">📊 Касса(Лагерь)</a>
         <a href="{% url 'discount' %}" class="menu-link ">💸 Скидки</a>
          <a href="{% url 'warehouse' %}" class="menu-link">📁 Склад</a>
      <a href="{% url  'kitchen' %}" class="menu-link">🍽️ Кухня</a>
@@ -674,15 +674,15 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
     <section class="summary-grid" aria-label="Общее количество товаров по категориям">
     <article class="summary-card" tabindex="0" aria-label="Школьные принадлежности: 385 штук">
       <h2 class="summary-title">Доход за год</h2>
-      <p class="summary-value">{{sum_year|intcomma}}<span class="summary-unit"> сум</span></p>
+      <p class="summary-value">0<span class="summary-unit"> сум</span></p>
     </article>
     <article class="summary-card" tabindex="0" aria-label="Мебель: 120 штук">
       <h2 class="summary-title">Доход за месяц</h2>
-      <p class="summary-value">{{sum_month|intcomma}}<span class="summary-unit"> сум</span></p>
+      <p class="summary-value">0<span class="summary-unit"> сум</span></p>
     </article>
     <article class="summary-card" tabindex="0" aria-label="Оборудование: 45 штук">
       <h2 class="summary-title">Доход за день</h2>
-      <p class="summary-value">{{sum_day|intcomma}}<span class="summary-unit"> сум</span></p>
+      <p class="summary-value">0<span class="summary-unit"> сум</span></p>
     </article>
   </section>
    <div class="filters">

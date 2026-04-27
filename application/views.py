@@ -759,7 +759,7 @@ def create_itemincabinet_api(request, cabinet_id=None, item_id=None):
             item.save()
             completely_removed = True
          else:
-            print("hello world")
+
             # Уменьшаем количество текущей записи
             item.quantity = remaining_qty
             item.save()
@@ -846,13 +846,26 @@ def get_room_inventory(request, room_id):
       })
 
    return JsonResponse({'items': data})
+
+
+def get_cabinet_stats(request, room_id):
+   cabinet = Inventory_cabinet.objects.annotate(
+      total_item=Count('items', filter=Q(items__archive=False))
+   ).filter(id=room_id).first()
+
+   if cabinet:
+      return JsonResponse({
+         'status': 'success',
+         'total_item': cabinet.total_item
+      })
+   return JsonResponse({'status': 'error'}, status=404)
 class Inventory_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'inventory.html'
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
-      context['cabinet']=cabinet = Inventory_cabinet.objects.prefetch_related(
+      context['cabinet']=Inventory_cabinet.objects.prefetch_related(
     "items"
 ).annotate(
     total_item=Count('items', filter=Q(items__archive=False))
@@ -870,6 +883,9 @@ class Inventory_view(LoginRequiredMixin,TemplateView):
 
       return context
 
+class Kassa_lager_view(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'kassa_lager.html'
 
 class Kassa_sadik_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
