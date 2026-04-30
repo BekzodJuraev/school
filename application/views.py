@@ -1010,6 +1010,12 @@ def student_more(request, pk):
 
    payments = []
    debts = []
+   months_ru = {
+      "01": "Январь", "02": "Февраль", "03": "Март", "04": "Апрель",
+      "05": "Май", "06": "Июнь", "07": "Июль", "08": "Август",
+      "09": "Сентябрь", "10": "Октябрь", "11": "Ноябрь", "12": "Декабрь"
+   }
+
 
 
    for t in transactions:
@@ -1018,11 +1024,14 @@ def student_more(request, pk):
             "date": t.created_at.strftime("%d.%m.%Y"),
             "type_of_payment": t.get_type_of_payment_display(),
             "sum": float(t.sum),
+            "note":t.comment,
          })
       else:
+
          debts.append({
             "date": t.created_at.strftime("%d.%m.%Y"),
             "sum": float(t.sum),
+            "month": months_ru.get(t.created_at.strftime("%m"))
          })
 
 
@@ -1077,13 +1086,35 @@ class ReportView(LoginRequiredMixin,TemplateView):
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
+
+      def get_students_with_balance(edu_type, is_archive=False):
+         return Student.objects.filter(
+            education_type=edu_type,
+            archive=is_archive
+         ).annotate(
+            total_debts=Coalesce(
+               Sum('payment_student__sum', filter=Q(payment_student__transaction_type='debt')),
+               0,
+               output_field=models.DecimalField()
+            ),
+            total_payments=Coalesce(
+               Sum('payment_student__sum', filter=Q(payment_student__transaction_type='payment')),
+               0,
+               output_field=models.DecimalField()
+            )
+         ).annotate(
+            balance=F('total_debts') - F('total_payments')
+         )
+
+
+      # Твой запрос для контекста
       context['classes'] = SchoolClass.objects.filter(
          students__education_type='school',
          students__archive=False
       ).distinct().prefetch_related(
          Prefetch(
             'students',
-            queryset=Student.objects.filter(education_type='school', archive=False)
+            queryset=get_students_with_balance('school')
          )
       ).order_by('name')
 
@@ -1094,7 +1125,7 @@ class ReportView(LoginRequiredMixin,TemplateView):
       ).distinct().prefetch_related(
          Prefetch(
             'students',
-            queryset=Student.objects.filter(education_type='preschool', archive=False)
+            queryset=get_students_with_balance('preschool')
          )
       ).order_by('name')
 
@@ -1105,7 +1136,7 @@ class ReportView(LoginRequiredMixin,TemplateView):
       ).distinct().prefetch_related(
          Prefetch(
             'students',
-            queryset=Student.objects.filter(education_type='kindergarten', archive=False)
+            queryset=get_students_with_balance('kindergarten')
          )
       ).order_by('name')
 

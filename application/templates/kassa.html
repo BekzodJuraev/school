@@ -894,6 +894,7 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
           <th>Дата</th>
           <th>Тип оплаты</th>
           <th>Сумма</th>
+           <th>Примечание</th>
         </tr>
       </thead>
       <tbody id="morePayments"></tbody>
@@ -907,6 +908,7 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
         <tr>
           <th>Дата</th>
           <th>Сумма</th>
+          <th>Месяц</th>
         </tr>
       </thead>
       <tbody id="moreDebts"></tbody>
@@ -986,14 +988,14 @@ document.querySelectorAll(".btn.more").forEach(btn => {
 
       // Payments
       const paymentsTable = document.getElementById("morePayments");
-      paymentsTable.innerHTML = data.payments.map(p =>
-        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td></tr>`
+    paymentsTable.innerHTML = data.payments.map(p =>
+        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td><td>${p.note}</td></tr>`
       ).join("");
 
       // Debts
       const debtsTable = document.getElementById("moreDebts");
       debtsTable.innerHTML = data.debts.map(d =>
-        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td></tr>`
+        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td><td>${d.month}</td></tr>`
       ).join("");
 
       // Totals (считаем на бэке или тут)

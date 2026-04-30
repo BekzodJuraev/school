@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.5/qz-tray.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsrsasign"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <title>ШколаCRM — Касса</title>
 <style>
   /* === Your base styles === */
@@ -856,9 +857,15 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
 
 <div class="category-container">
     <div class="category-bar school-theme" onclick="toggleCategory('school-active')">
-      <span>🏫 Школа</span>
-      <span class="cat-arrow">▶</span>
-    </div>
+  <span>🏫 Школа</span>
+  <div style="display: flex; align-items: center; gap: 15px;">
+    <!-- Кнопка Excel. stopPropagation() нужен, чтобы при нажатии на кнопку не срабатывало открытие/закрытие раздела -->
+    <button class="btn edit" onclick="exportToExcel('school-active', 'Отчет_Школа'); event.stopPropagation();" style="background: #28a745; box-shadow: none;">
+      📥 Excel
+    </button>
+    <span class="cat-arrow">▶</span>
+  </div>
+</div>
     <div id="school-active" class="category-body">
       {% for item in classes %}
   <section class="class-section fade-in">
@@ -879,7 +886,10 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
         <tbody>
         {% for student in item.students.all %}
           <tr>
-            <td>{{student.lastname}} {{student.name}} {{student.middle_name}}</td>
+            <td>{{student.lastname}} {{student.name}} {{student.middle_name}}
+
+            <span class="hidden-balance" style="display:none;">{{ student.balance|default:0|stringformat:".2f" }}</span>
+            </td>
 
             <td><button class="btn more" data-id="{{student.id}}">👁️</button></td>
           </tr>
@@ -897,7 +907,15 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
  <div class="category-container">
     <div class="category-bar garden-theme" onclick="toggleCategory('garden-active')">
       <span>🧸 Садик</span>
-      <span class="cat-arrow">▶</span>
+
+      <div style="display: flex; align-items: center; gap: 15px;">
+    <!-- Кнопка Excel. stopPropagation() нужен, чтобы при нажатии на кнопку не срабатывало открытие/закрытие раздела -->
+    <button class="btn edit" onclick="exportToExcel('garden-active', 'Отчет_Садик'); event.stopPropagation();" style="background: #28a745; box-shadow: none;">
+      📥 Excel
+    </button>
+    <span class="cat-arrow">▶</span>
+  </div>
+
     </div>
     <div id="garden-active" class="category-body">
        {% for item in kinder %}
@@ -919,7 +937,9 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
         <tbody>
         {% for student in item.students.all %}
           <tr>
-            <td>{{student.lastname}} {{student.name}} {{student.middle_name}}</td>
+            <td>{{student.lastname}} {{student.name}} {{student.middle_name}}
+            <span class="hidden-balance" style="display:none;">{{ student.balance|default:0|stringformat:".2f" }}</span>
+            </td>
 
             <td><button class="btn more" data-id="{{student.id}}">👁️</button></td>
           </tr>
@@ -937,7 +957,13 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
   <div class="category-container">
     <div class="category-bar prep-theme" onclick="toggleCategory('prep-active')">
       <span>📝 Подготовка</span>
-      <span class="cat-arrow">▶</span>
+      <div style="display: flex; align-items: center; gap: 15px;">
+    <!-- Кнопка Excel. stopPropagation() нужен, чтобы при нажатии на кнопку не срабатывало открытие/закрытие раздела -->
+    <button class="btn edit" onclick="exportToExcel('prep-active', 'Отчет_Подготовка'); event.stopPropagation();" style="background: #28a745; box-shadow: none;">
+      📥 Excel
+    </button>
+    <span class="cat-arrow">▶</span>
+  </div>
     </div>
     <div id="prep-active" class="category-body">
       {% for item in preschool %}
@@ -959,7 +985,8 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
         <tbody>
         {% for student in item.students.all %}
           <tr>
-            <td>{{student.lastname}} {{student.name}} {{student.middle_name}}</td>
+            <td>{{student.lastname}} {{student.name}} {{student.middle_name}}
+            <span class="hidden-balance" style="display:none;">{{ student.balance|default:0|stringformat:".2f" }}</span></td>
 
             <td><button class="btn more" data-id="{{student.id}}">👁️</button></td>
           </tr>
@@ -1124,6 +1151,7 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
           <th>Дата</th>
           <th>Тип оплаты</th>
           <th>Сумма</th>
+           <th>Примечание</th>
         </tr>
       </thead>
       <tbody id="morePayments"></tbody>
@@ -1137,6 +1165,8 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
         <tr>
           <th>Дата</th>
           <th>Сумма</th>
+           <th>Месяц</th>
+
         </tr>
       </thead>
       <tbody id="moreDebts"></tbody>
@@ -1155,6 +1185,61 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
     </div>
   </div>
 </div>
+<script>
+function exportToExcel(containerId, fileName) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Заголовки: "Предоплата" вместо "Переплата"
+    const data = [["Класс", "ФИО Ученика", "Долг", "Предоплата"]];
+    const sections = container.querySelectorAll('.class-section');
+
+    sections.forEach(section => {
+        const titleEl = section.querySelector('.class-title');
+        if (!titleEl) return;
+
+        let className = titleEl.innerText.replace(/[▶▸]/g, '').trim();
+        const rows = section.querySelectorAll('tbody tr');
+
+        rows.forEach((row, index) => {
+            const firstCell = row.querySelector('td');
+            if (!firstCell) return;
+
+            // Чистим ФИО (берем только текст до тега span)
+            const studentName = firstCell.childNodes[0].textContent.trim();
+
+            const balanceEl = row.querySelector('.hidden-balance');
+            const balance = balanceEl ? parseFloat(balanceEl.textContent) || 0 : 0;
+
+            let debt = 0;
+            let prepayment = 0; // Предоплата
+
+            if (balance > 0) {
+                debt = balance;
+            } else if (balance < 0) {
+                prepayment = Math.abs(balance);
+            }
+
+            data.push([
+                index === 0 ? className : "",
+                studentName,
+                debt,
+                prepayment
+            ]);
+        });
+
+        data.push(["", "", "", ""]); // Разделитель между классами
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
+
+    worksheet['!cols'] = [{ wch: 15 }, { wch: 40 }, { wch: 12 }, { wch: 12 }];
+
+    XLSX.writeFile(workbook, `${fileName}.xlsx`);
+}
+</script>
 <script>
   function toggleCategory(id) {
   const body = document.getElementById(id);
@@ -1248,13 +1333,13 @@ document.querySelectorAll(".btn.more").forEach(btn => {
       // Payments
       const paymentsTable = document.getElementById("morePayments");
       paymentsTable.innerHTML = data.payments.map(p =>
-        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td></tr>`
+        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td><td>${p.note}</td></tr>`
       ).join("");
 
       // Debts
       const debtsTable = document.getElementById("moreDebts");
       debtsTable.innerHTML = data.debts.map(d =>
-        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td></tr>`
+        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td><td>${d.month}</td></tr>`
       ).join("");
 
       // Totals (считаем на бэке или тут)
