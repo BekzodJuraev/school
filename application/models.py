@@ -146,6 +146,9 @@ class Invoice(models.Model):
 
 class Inventory_cabinet(models.Model):
     name=models.CharField(max_length=100,unique=True)
+    school_class = models.ForeignKey(SchoolClass, related_name='students_inventory',on_delete=models.SET_NULL, null=True, blank=True)
+
+
 
     def __str__(self):
         return self.name

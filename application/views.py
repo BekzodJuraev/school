@@ -682,10 +682,11 @@ def create_cabinet_api(request):
       try:
          data = json.loads(request.body)
          room_name = data.get('name')
+         class_id=data.get('class_id')
 
          if room_name:
             # Создаем запись в БД
-            new_room = Inventory_cabinet.objects.create(name=room_name)
+            new_room = Inventory_cabinet.objects.create(name=room_name,school_class_id=class_id)
 
             return JsonResponse({
                'status': 'success',
@@ -832,9 +833,20 @@ def items_api(request, item_id=None): # Добавили item_id для удал
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+
 def get_room_inventory(request, room_id):
-   # Получаем все предметы для конкретного кабинета
-   items = Inventory.objects.filter(cabinet_id=room_id, archive=False).select_related('item_type')
+   # 1. Находим кабинет
+   cabinet = get_object_or_404(Inventory_cabinet, id=room_id)
+
+   # 2. Получаем предметы этого кабинета
+   items = Inventory.objects.filter(cabinet=cabinet, archive=False).select_related('item_type')
+
+   # 3. Считаем детей через связанный school_class
+   # Если класс привязан к кабинету, считаем количество его учеников
+   students_count = 0
+   if cabinet.school_class:
+      students_count = Student.objects.filter(school_class=cabinet.school_class).count()
 
    data = []
    for i in items:
@@ -842,10 +854,15 @@ def get_room_inventory(request, room_id):
          'name': i.item_type.name,
          'quantity': i.quantity,
          'id': i.id,
-         'item_type_id': i.item_type.id  # ОБЯЗАТЕЛЬНО: для связи с кнопками быстрого добавления
+         'item_type_id': i.item_type.id
       })
 
-   return JsonResponse({'items': data})
+   return JsonResponse({
+      'status': 'success',
+      'cabinet_id': cabinet.id,
+      'students_count': students_count,
+      'items': data
+   })
 
 
 def get_cabinet_stats(request, room_id):
@@ -865,6 +882,7 @@ class Inventory_view(LoginRequiredMixin,TemplateView):
 
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
+      context['classes']=SchoolClass.objects.all()
       context['cabinet']=Inventory_cabinet.objects.prefetch_related(
     "items"
 ).annotate(
