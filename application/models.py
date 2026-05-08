@@ -190,8 +190,8 @@ class Payment(models.Model):
     ]
     TYPE = [
         ("cash", "Наличные"),
-        ("bank", "Банковские переводы"),
-        ('card','Карта')
+        ("bank", "Карта"),
+        ('card','Банковские переводы')
 
     ]
     comment = models.CharField(max_length=200, null=True, blank=True)
