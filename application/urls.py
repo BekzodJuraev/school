@@ -28,7 +28,8 @@ urlpatterns=[
     path('discount/',views.Discount_view.as_view(),name='discount'),
     path('printer/',views.Printer_checkView.as_view(),name='printer'),
     path('report/',views.ReportView.as_view(),name='report'),
-    path('kitchen/',views.Kitchen_View.as_view(),name='kitchen')
+    path('kitchen/',views.Kitchen_View.as_view(),name='kitchen'),
+    path('turniket/',views.Turniket_view.as_view(),name='turniket')
 
 
 

@@ -1,0 +1,229 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ШколаCRM — Турникет</title>
+<style>
+  /* Стили полностью соответствуют вашему report.html */
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f6fa;
+    color: #222;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background-color: #1e1e2f;
+    width: 240px;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    box-shadow: inset 2px 0 8px #00000055;
+  }
+  .sidebar h2 { font-size: 24px; margin-bottom: 2rem; text-align: center; color: white; }
+  .menu { display: flex; flex-direction: column; gap: 1rem; }
+  .menu-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #2a2a40;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .menu-link:hover { background-color: #3b3b5a; color: #ffcc00; }
+  .menu-link.active { background-color: #4e73df; color: white; box-shadow: 0 0 15px #4e73dfaa; }
+
+  /* Main content */
+  .main-wrapper {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    padding: 2.5rem 3rem;
+  }
+
+  header.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+  }
+  header.top-bar h1 { font-size: 2.4rem; font-weight: 700; color: #4e73df; margin: 0; }
+
+  /* Фильтры в стиле report.html */
+  .filters { display: flex; gap: 10px; align-items: center; }
+  .filters input {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+
+  /* Таблица */
+  .category-container { margin-bottom: 15px; }
+  .category-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 25px;
+    background: #1e56d0;
+    color: white;
+    border-radius: 12px;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+  .category-body { padding: 20px 0; }
+
+  .payments-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+  }
+  .payments-table th {
+    background: #f8f9fc;
+    color: #4e73df;
+    padding: 15px;
+    text-align: left;
+    border-bottom: 2px solid #e3e6f0;
+  }
+  .payments-table td {
+    padding: 15px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .btn-open {
+    background: #ffcc00;
+    color: #1e1e2f;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .direction-in { color: #28a745; font-weight: bold; }
+  .direction-out { color: #e74a3b; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <h2>🏫 ШколаCRM</h2>
+  <nav class="menu">
+    <a href="{% url 'dashboard' %}" class="menu-link">🏠 Панель</a>
+    <a href="{% url 'report' %}" class="menu-link">📈 Отчет</a>
+    <a href="{% url 'turniket' %}" class="menu-link active">🚧 Турникет</a>
+    <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+    <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+  </nav>
+</aside>
+
+<div class="main-wrapper">
+  <header class="top-bar">
+    <h1>Турникет</h1>
+
+    <div class="filters">
+      <input type="text" id="staffSearch" placeholder="🔍 Поиск сотрудника..." />
+      <input type="date" id="dateFilter" />
+    </div>
+
+    <div class="user-info">
+      {{request.user.profile.lastname}} {{request.user.profile.name}}
+    </div>
+  </header>
+
+  <div class="category-container">
+    <div class="category-bar">
+      <span>🕒 Журнал проходов</span>
+      <button class="btn-open" onclick="triggerTurnstile()">🔓 Открыть ворота</button>
+    </div>
+
+    <div class="category-body">
+      <table class="payments-table" id="eventsTable">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Время</th>
+            <th>Сотрудник</th>
+            <th>Направление</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-date="2024-05-15">
+            <td>15.05.2024</td>
+            <td>08:15:22</td>
+            <td>Жураев Бекзод</td>
+            <td><span class="direction-in">🟢 ВХОД</span></td>
+          </tr>
+          <tr data-date="2024-05-15">
+            <td>15.05.2024</td>
+            <td>17:45:10</td>
+            <td>Иванов Иван Иванович</td>
+            <td><span class="direction-out">🔴 ВЫХОД</span></td>
+          </tr>
+          <tr data-date="2024-05-14">
+            <td>14.05.2024</td>
+            <td>09:00:00</td>
+            <td>Сидоров Петр</td>
+            <td><span class="direction-in">🟢 ВХОД</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 1. Установка сегодняшней даты по умолчанию и фильтрация при загрузке
+  window.onload = function() {
+    const dateInput = document.getElementById('dateFilter');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+
+    filterTable(); // Запуск фильтрации сразу
+  };
+
+  // 2. Функция фильтрации (по имени и по дате одновременно)
+  function filterTable() {
+    const nameFilter = document.getElementById('staffSearch').value.toLowerCase();
+    const dateFilter = document.getElementById('dateFilter').value;
+    const rows = document.querySelectorAll('#eventsTable tbody tr');
+
+    rows.forEach(row => {
+      const staffName = row.cells[2].textContent.toLowerCase();
+      const rowDate = row.getAttribute('data-date'); // Берем дату из атрибута
+
+      const matchesName = staffName.includes(nameFilter);
+      const matchesDate = !dateFilter || rowDate === dateFilter;
+
+      if (matchesName && matchesDate) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  // Слушатели событий для мгновенной фильтрации
+  document.getElementById('staffSearch').addEventListener('input', filterTable);
+  document.getElementById('dateFilter').addEventListener('change', filterTable);
+
+  function triggerTurnstile() {
+    if(confirm("Вы уверены, что хотите принудительно открыть турникет?")) {
+      alert("Сигнал отправлен.");
+    }
+  }
+</script>
+
+</body>
+</html>

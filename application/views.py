@@ -901,6 +901,11 @@ class Inventory_view(LoginRequiredMixin,TemplateView):
 
       return context
 
+
+class Turniket_view(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'turniket.html'
+
 class Kassa_lager_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'kassa_lager.html'
