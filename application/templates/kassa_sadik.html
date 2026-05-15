@@ -1,5 +1,7 @@
 {% load humanize %}
 {% load static %}
+
+{% load tz %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -832,6 +834,18 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
   <input type="hidden" id="studentId" name="student_id">
   <input type="hidden" id="studentClass" name="student_class">
 </div>
+         <div class="form-group" style="margin-bottom: 15px;">
+  <label for="paymentDate" style="display: block; margin-bottom: 5px;">Дата</label>
+  <input
+    type="date"
+    id="paymentDate"
+    name="payment_date"
+    class="form-control"
+    style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;"
+    value="{% now 'Y-m-d' %}"
+    required
+  >
+</div>
 
 
       <label for="itemCategory">Тип оплаты</label>
@@ -935,6 +949,7 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
     </div>
   </div>
 </div>
+
 <script>
 function filterTable() {
   const startDate = document.getElementById("startDate").value

@@ -917,11 +917,12 @@ class Kassa_sadik_view(LoginRequiredMixin,TemplateView):
       student_pk=request.POST.get('student_id')
       note=request.POST.get('note')
       transaction_type="payment"
+      created_at=request.POST.get('payment_date')
 
       pk=request.POST.get('pk')
 
       if action == "payment":
-         Payment.objects.create(sum=sum,type_of_payment=type_of_payment,transaction_type=transaction_type,student_id=student_pk,comment=note)
+         Payment.objects.create(sum=sum,type_of_payment=type_of_payment,created_at=created_at,transaction_type=transaction_type,student_id=student_pk,comment=note)
 
       elif action == "delete":
          Payment.objects.filter(pk=pk).delete()
