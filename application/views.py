@@ -29,7 +29,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
 from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items,Turniket,TrackingTurniket
 from django.utils import timezone
-
+from django.utils import timezone
 from decimal import Decimal
 class Dashboard(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
@@ -1302,9 +1302,10 @@ def turniket_data(request):
 
    data = []
    for item in qs.order_by('-created_at'):
+      local_time = timezone.localtime(item.created_at)
       data.append({
-         'date': item.created_at.strftime('%d.%m.%Y'),
-         'time': item.created_at.strftime('%H:%M:%S'),
+         'date': local_time.strftime('%d.%m.%Y'),
+         'time': local_time.strftime('%H:%M:%S'),
          'name': item.turniket.name,
          'photo': item.turniket.photo.url if item.turniket.photo else None,
          'enter': item.enter,
