@@ -1261,10 +1261,11 @@ def hikvision_event(request):
         return JsonResponse({"status": "invalid_json"}, status=400)
 
     event = data.get("AccessControllerEvent", {})
-    employee_no = event.get("employeeNoString", "")
+    employee_no = event.get("employeeNoString")
 
 
     # No person recognized — skip silently
+
     if not employee_no:
         return JsonResponse({"status": "no_person"}, status=200)  # 200 so camera stops retrying
 
@@ -1274,12 +1275,19 @@ def hikvision_event(request):
         event_time = datetime.now()
 
     try:
-        TrackingTurniket.objects.create(
-            turniket=Turniket.objects.get(user_id=int(employee_no)),
-            created_at=event_time,
-            enter="in",
-        )
+
+       turniket = Turniket.objects.get(user_id=int(employee_no))
+       tracking = TrackingTurniket.objects.create(
+          turniket=turniket,
+          created_at=event_time,
+          enter="in",
+       )
+       # print("CREATED:", tracking.turniket.name)
+       # print("DATE FROM CAMERA:", datetime.fromisoformat(data.get("dateTime", "")))
+       # print("EVENT TIME SAVED:", event_time)
+       # print("─" * 30)
     except Turniket.DoesNotExist:
+
         return JsonResponse({"status": "unknown_employee"}, status=200)
 
     return JsonResponse({"status": "ok"})
