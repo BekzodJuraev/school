@@ -646,6 +646,9 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
        {% if request.user.profile.position == 'admin' %}
       <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
       <a href="{% url 'report' %}" class="menu-link ">📈 Отчет</a>
+         <a href="{% url 'turniket' %}" class="menu-link ">
+    🚧 Турникет
+</a>
       {% endif %}
       <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
     <a href="{% url 'kassa_sadik' %}" class="menu-link   ">📊 Касса(Cадик)</a>

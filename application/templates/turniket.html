@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ШколаCRM — Турникет</title>
 <style>
-  /* Стили полностью соответствуют вашему report.html */
   *, *::before, *::after { box-sizing: border-box; }
   body {
     margin: 0; padding: 0;
@@ -17,7 +16,6 @@
     min-height: 100vh;
   }
 
-  /* Sidebar */
   .sidebar {
     background-color: #1e1e2f;
     width: 240px;
@@ -43,7 +41,6 @@
   .menu-link:hover { background-color: #3b3b5a; color: #ffcc00; }
   .menu-link.active { background-color: #4e73df; color: white; box-shadow: 0 0 15px #4e73dfaa; }
 
-  /* Main content */
   .main-wrapper {
     flex-grow: 1;
     display: flex;
@@ -60,7 +57,6 @@
   }
   header.top-bar h1 { font-size: 2.4rem; font-weight: 700; color: #4e73df; margin: 0; }
 
-  /* Фильтры в стиле report.html */
   .filters { display: flex; gap: 10px; align-items: center; }
   .filters input {
     padding: 8px 12px;
@@ -69,7 +65,6 @@
     font-size: 0.9rem;
   }
 
-  /* Таблица */
   .category-container { margin-bottom: 15px; }
   .category-bar {
     display: flex;
@@ -82,6 +77,25 @@
     font-size: 1.3rem;
     font-weight: 700;
   }
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0.9;
+  }
+  .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.5); }
+  }
+
   .category-body { padding: 20px 0; }
 
   .payments-table {
@@ -101,18 +115,21 @@
     border-bottom: 1px solid #e5e7eb;
   }
 
-  .btn-open {
-    background: #ffcc00;
-    color: #1e1e2f;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-
-  .direction-in { color: #28a745; font-weight: bold; }
+  .direction-in  { color: #28a745; font-weight: bold; }
   .direction-out { color: #e74a3b; font-weight: bold; }
+
+  .avatar-circle {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: #4e73df;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -121,9 +138,20 @@
   <h2>🏫 ШколаCRM</h2>
   <nav class="menu">
     <a href="{% url 'dashboard' %}" class="menu-link">🏠 Панель</a>
+    <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
     <a href="{% url 'report' %}" class="menu-link">📈 Отчет</a>
     <a href="{% url 'turniket' %}" class="menu-link active">🚧 Турникет</a>
+    <a href="{% url 'kassa' %}" class="menu-link">📊 Касса</a>
+    <a href="{% url 'kassa_sadik' %}" class="menu-link">📊 Касса(Cадик)</a>
+    <a href="{% url 'kassa_lager' %}" class="menu-link">📊 Касса(Лагерь)</a>
+    <a href="{% url 'discount' %}" class="menu-link">💸 Скидки</a>
+    <a href="{% url 'warehouse' %}" class="menu-link">📁 Склад</a>
+    <a href="{% url 'kitchen' %}" class="menu-link">🍽️ Кухня</a>
+    <a href="{% url 'inventory' %}" class="menu-link">📋 Инвентаризация</a>
+    <a href="{% url 'staff' %}" class="menu-link">👨‍🏫 Сотрудники</a>
+    <a href="{% url 'class' %}" class="menu-link">📚 Классы</a>
     <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+    <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
     <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
   </nav>
 </aside>
@@ -131,12 +159,10 @@
 <div class="main-wrapper">
   <header class="top-bar">
     <h1>Турникет</h1>
-
     <div class="filters">
       <input type="text" id="staffSearch" placeholder="🔍 Поиск сотрудника..." />
       <input type="date" id="dateFilter" />
     </div>
-
     <div class="user-info">
       {{request.user.profile.lastname}} {{request.user.profile.name}}
     </div>
@@ -145,7 +171,9 @@
   <div class="category-container">
     <div class="category-bar">
       <span>🕒 Журнал проходов</span>
-      <button class="btn-open" onclick="triggerTurnstile()">🔓 Открыть ворота</button>
+      <div class="live-badge">
+        <div class="live-dot"></div> LIVE
+      </div>
     </div>
 
     <div class="category-body">
@@ -158,71 +186,62 @@
             <th>Направление</th>
           </tr>
         </thead>
-        <tbody>
-          <tr data-date="2024-05-15">
-            <td>15.05.2024</td>
-            <td>08:15:22</td>
-            <td>Жураев Бекзод</td>
-            <td><span class="direction-in">🟢 ВХОД</span></td>
-          </tr>
-          <tr data-date="2024-05-15">
-            <td>15.05.2024</td>
-            <td>17:45:10</td>
-            <td>Иванов Иван Иванович</td>
-            <td><span class="direction-out">🔴 ВЫХОД</span></td>
-          </tr>
-          <tr data-date="2024-05-14">
-            <td>14.05.2024</td>
-            <td>09:00:00</td>
-            <td>Сидоров Петр</td>
-            <td><span class="direction-in">🟢 ВХОД</span></td>
-          </tr>
-        </tbody>
+        <tbody id="tableBody"></tbody>
       </table>
     </div>
   </div>
 </div>
 
 <script>
-  // 1. Установка сегодняшней даты по умолчанию и фильтрация при загрузке
-  window.onload = function() {
-    const dateInput = document.getElementById('dateFilter');
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
-
-    filterTable(); // Запуск фильтрации сразу
-  };
-
-  // 2. Функция фильтрации (по имени и по дате одновременно)
-  function filterTable() {
+  async function loadTracking() {
     const nameFilter = document.getElementById('staffSearch').value.toLowerCase();
     const dateFilter = document.getElementById('dateFilter').value;
-    const rows = document.querySelectorAll('#eventsTable tbody tr');
 
-    rows.forEach(row => {
-      const staffName = row.cells[2].textContent.toLowerCase();
-      const rowDate = row.getAttribute('data-date'); // Берем дату из атрибута
+    try {
+      const response = await fetch(`{% url 'turniket_data' %}?date=${dateFilter}`);
+      const data = await response.json();
 
-      const matchesName = staffName.includes(nameFilter);
-      const matchesDate = !dateFilter || rowDate === dateFilter;
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
 
-      if (matchesName && matchesDate) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
-    });
-  }
+      data
+        .filter(item => item.name.toLowerCase().includes(nameFilter))
+        .forEach(item => {
+          const avatar = item.photo
+            ? `<img src="${item.photo}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;" />`
+            : `<div class="avatar-circle">${item.name.charAt(0).toUpperCase()}</div>`;
 
-  // Слушатели событий для мгновенной фильтрации
-  document.getElementById('staffSearch').addEventListener('input', filterTable);
-  document.getElementById('dateFilter').addEventListener('change', filterTable);
+          const direction = item.enter === 'in'
+            ? `<span class="direction-in">🟢 ВХОД</span>`
+            : `<span class="direction-out">🔴 ВЫХОД</span>`;
 
-  function triggerTurnstile() {
-    if(confirm("Вы уверены, что хотите принудительно открыть турникет?")) {
-      alert("Сигнал отправлен.");
+          tbody.innerHTML += `
+            <tr>
+              <td>${item.date}</td>
+              <td>${item.time}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  ${avatar}
+                  ${item.name}
+                </div>
+              </td>
+              <td>${direction}</td>
+            </tr>`;
+        });
+
+    } catch (e) {
+      console.error('Ошибка загрузки:', e);
     }
   }
+
+  window.onload = function () {
+    document.getElementById('dateFilter').value = new Date().toISOString().split('T')[0];
+    loadTracking();
+    setInterval(loadTracking, 5000);
+  };
+
+  document.getElementById('staffSearch').addEventListener('input', loadTracking);
+  document.getElementById('dateFilter').addEventListener('change', loadTracking);
 </script>
 
 </body>

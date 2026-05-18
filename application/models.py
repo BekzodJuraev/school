@@ -4,6 +4,8 @@ from phonenumber_field.modelfields import PhoneNumberField
 from django.contrib.auth.models import AbstractUser
 
 from datetime import date
+
+TRACKING_START = date(2026, 5, 1)
 class Profile(models.Model):
     POSITION_CHOICES = [
         ("admin", "Админ"),
@@ -222,8 +224,48 @@ class Payment(models.Model):
         return self.student.name
 
 
+class Turniket(models.Model):
+    TYPE = [
+        ("worker", "Сотрудник"),
+        ("student", "Ученик")
+
+    ]
+    user_id=models.IntegerField(unique=True)
+    name=models.CharField(max_length=255)
+    photo=models.ImageField(upload_to='face/')
+    role=models.CharField(max_length=50, choices=TYPE)
+
+    def __str__(self):
+        return self.name
 
 
+class TrackingTurniket(models.Model):
+    TYPE = [
+        ("in", "Вход"),
+        ("out", "Выход")
+
+    ]
+
+    turniket=models.ForeignKey(Turniket, related_name="payment_student",on_delete=models.CASCADE)
+    created_at=models.DateTimeField()
+    enter = models.CharField(max_length=20, choices=TYPE)
+
+    def save(self, *args, **kwargs):
+        if self.created_at.date() < TRACKING_START:
+            return  # ignore events before 01.05.2026
+
+        already_exists = TrackingTurniket.objects.filter(
+            turniket=self.turniket,
+            created_at__year=self.created_at.year,
+            created_at__month=self.created_at.month,
+            created_at__day=self.created_at.day,
+        ).exists()
+
+        if not already_exists:
+            super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.turniket.name
 
 
 

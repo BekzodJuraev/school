@@ -29,7 +29,10 @@ urlpatterns=[
     path('printer/',views.Printer_checkView.as_view(),name='printer'),
     path('report/',views.ReportView.as_view(),name='report'),
     path('kitchen/',views.Kitchen_View.as_view(),name='kitchen'),
-    path('turniket/',views.Turniket_view.as_view(),name='turniket')
+    path('turniket/',views.Turniket_view.as_view(),name='turniket'),
+    path("hikvision/event/", views.hikvision_event, name="hikvision_event"),
+    path('turniket/data/', views.turniket_data, name='turniket_data'),
+
 
 
 

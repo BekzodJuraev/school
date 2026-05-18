@@ -27,7 +27,7 @@ from django.db.models import Sum,Q,Count,F,Max,Prefetch,Value
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
-from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items
+from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items,Turniket,TrackingTurniket
 from django.utils import timezone
 
 from decimal import Decimal
@@ -906,6 +906,14 @@ class Turniket_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'turniket.html'
 
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+
+      context['tracking']=TrackingTurniket.objects.all().select_related('turniket')
+
+
+      return context
+
 class Kassa_lager_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'kassa_lager.html'
@@ -1242,3 +1250,56 @@ class ReportView(LoginRequiredMixin,TemplateView):
 #         keyboard.append(row)
 #
 #     return InlineKeyboardMarkup(keyboard)
+
+
+@csrf_exempt
+@require_POST
+def hikvision_event(request):
+    try:
+        data = json.loads(request.POST.get("event_log", "{}"))
+    except Exception:
+        return JsonResponse({"status": "invalid_json"}, status=400)
+
+    event = data.get("AccessControllerEvent", {})
+    employee_no = event.get("employeeNoString", "")
+
+
+    # No person recognized — skip silently
+    if not employee_no:
+        return JsonResponse({"status": "no_person"}, status=200)  # 200 so camera stops retrying
+
+    try:
+        event_time = datetime.fromisoformat(data.get("dateTime", ""))
+    except Exception:
+        event_time = datetime.now()
+
+    try:
+        TrackingTurniket.objects.create(
+            turniket=Turniket.objects.get(user_id=int(employee_no)),
+            created_at=event_time,
+            enter="in",
+        )
+    except Turniket.DoesNotExist:
+        return JsonResponse({"status": "unknown_employee"}, status=200)
+
+    return JsonResponse({"status": "ok"})
+
+
+def turniket_data(request):
+   date = request.GET.get('date')
+   qs = TrackingTurniket.objects.select_related('turniket')
+
+   if date:
+      qs = qs.filter(created_at__date=date)
+
+   data = []
+   for item in qs.order_by('-created_at'):
+      data.append({
+         'date': item.created_at.strftime('%d.%m.%Y'),
+         'time': item.created_at.strftime('%H:%M:%S'),
+         'name': item.turniket.name,
+         'photo': item.turniket.photo.url if item.turniket.photo else None,
+         'enter': item.enter,
+      })
+
+   return JsonResponse(data, safe=False)

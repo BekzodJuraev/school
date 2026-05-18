@@ -1,7 +1,15 @@
 from django.contrib import admin
-from .models import Profile,Staff,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items
+from .models import Profile,Staff,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items,Turniket,TrackingTurniket
+
 from django.utils.html import format_html
 
+
+@admin.register(TrackingTurniket)
+class TrackingTurniket(admin.ModelAdmin):
+    pass
+@admin.register(Turniket)
+class Turniket(admin.ModelAdmin):
+    pass
 @admin.register(Inventory)
 class Inventory(admin.ModelAdmin):
     pass
