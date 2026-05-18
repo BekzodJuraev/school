@@ -251,8 +251,8 @@ class TrackingTurniket(models.Model):
     enter = models.CharField(max_length=20, choices=TYPE)
 
     def save(self, *args, **kwargs):
-        # if self.created_at.date() < TRACKING_START:
-        #     return  # ignore events before 01.05.2026
+        if self.created_at.date() < TRACKING_START:
+            return  # ignore events before 01.05.2026
 
         already_exists = TrackingTurniket.objects.filter(
             turniket=self.turniket,
