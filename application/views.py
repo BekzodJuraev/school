@@ -932,6 +932,7 @@ class Kassa_sadik_view(LoginRequiredMixin,TemplateView):
       transaction_type="payment"
       created_at=request.POST.get('payment_date')
 
+
       pk=request.POST.get('pk')
 
       if action == "payment":
@@ -941,7 +942,8 @@ class Kassa_sadik_view(LoginRequiredMixin,TemplateView):
          Payment.objects.filter(pk=pk).delete()
 
       elif action == "edit":
-         Payment.objects.filter(pk=pk).update(sum=sum,comment=note)
+
+         Payment.objects.filter(pk=pk).update(sum=sum,created_at=created_at,type_of_payment=type_of_payment,comment=note)
 
 
 

@@ -691,20 +691,17 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
     </article>
   </section>
    <div class="filters">
-    <!-- Search -->
-   <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
+  <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
 
-    <!-- Date filter -->
-    <label>
-      от:
-      <input type="date" id="startDate">
-    </label>
-    <label>
-      до:
-      <input type="date" id="endDate">
-    </label>
-    <button onclick="filterTable()">Фильтр</button>
-  </div>
+  <label>
+    от:
+    <input type="date" id="startDate">
+  </label>
+  <label>
+    до:
+    <input type="date" id="endDate">
+  </label>
+</div>
   <!-- Tabs -->
   <nav class="tabs" role="tablist" aria-label="Переключение между разделами">
     <button role="tab" aria-selected="true" aria-controls="payments-tab" id="tabPayments" class="active">Платежи</button>
@@ -954,7 +951,27 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
 </div>
 
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const startDateInput = document.getElementById("startDate");
+  const endDateInput = document.getElementById("endDate");
+  const searchInput = document.getElementById("searchInput");
+
+  // 1. Устанавливаем сегодняшнюю дату при загрузке страницы
+  const today = new Date().toISOString().split('T')[0];
+  startDateInput.value = today;
+  endDateInput.value = today;
+
+  // 2. Добавляем слушатели событий для мгновенной фильтрации
+  [startDateInput, endDateInput, searchInput].forEach(input => {
+    input.addEventListener("input", filterTable);
+  });
+
+  // Запускаем фильтр сразу, чтобы показать записи только за сегодня
+  filterTable();
+});
+
 function filterTable() {
+  const query = document.getElementById("searchInput").value.toLowerCase();
   const startDate = document.getElementById("startDate").value
     ? new Date(document.getElementById("startDate").value)
     : null;
@@ -962,18 +979,31 @@ function filterTable() {
     ? new Date(document.getElementById("endDate").value)
     : null;
 
+  // Если дата выбрана, сбрасываем время для корректного сравнения "день в день"
+  if (startDate) startDate.setHours(0, 0, 0, 0);
+  if (endDate) endDate.setHours(23, 59, 59, 999);
+
   const rows = document.querySelectorAll("#paymentsTable tbody tr");
 
   rows.forEach(row => {
+    // Получаем дату из колонки
     const dateText = row.querySelector('[data-label="Дата"]').textContent.trim();
     const [day, month, year] = dateText.split(".");
     const rowDate = new Date(`${year}-${month}-${day}`);
 
-    let visible = true;
-    if (startDate && rowDate < startDate) visible = false;
-    if (endDate && rowDate > endDate) visible = false;
+    // Получаем имя из колонки (предположим, у вас есть data-label="Имя")
+    const nameText = row.querySelector('[data-label="Ученик"]')?.textContent.toLowerCase() || "";
 
-    row.style.display = visible ? "" : "none";
+    let isVisible = true;
+
+    // Проверка по дате
+    if (startDate && rowDate < startDate) isVisible = false;
+    if (endDate && rowDate > endDate) isVisible = false;
+
+    // Проверка по поиску (имя)
+    if (query && !nameText.includes(query)) isVisible = false;
+
+    row.style.display = isVisible ? "" : "none";
   });
 }
 </script>
@@ -1054,8 +1084,21 @@ document.querySelectorAll(".btn.edit").forEach(btn => {
     document.getElementById("price_raw").value = sum;
     document.getElementById("price").value = sum.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
+    // 4. Примечание (берем текст из колонки, так как в data-атрибутах его нет)
+    const comment = tr.querySelector('[data-label="Примечание"]')?.textContent.trim();
+    document.getElementById("invoiceNote").value = comment || "";
+
     // 4. Update action and UI text
     document.getElementById("action").value = "edit";
+    const dateText = tr.querySelector('[data-label="Дата"]').textContent.trim();
+    if (dateText) {
+        const [day, month, year] = dateText.split(".");
+        // Форматируем в ГГГГ-ММ-ДД для input type="date"
+        const formattedDate = `${year}-${month}-${day}`;
+        document.getElementById("paymentDate").value = formattedDate;
+    }
+
+
 
     // Safety check: only set textContent if the elements exist
     if (modalTitle) modalTitle.textContent = 'Редактировать оплату';
