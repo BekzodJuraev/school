@@ -33,8 +33,9 @@ urlpatterns=[
     path('turniket/',views.Turniket_view.as_view(),name='turniket'),
     path("hikvision/event/", views.hikvision_event, name="hikvision_event"),
     path('turniket/data/', views.turniket_data, name='turniket_data'),
-    path('lager/',views.LagerView.as_view(),name='student_lager')
-
+    path('lager/',views.LagerView.as_view(),name='student_lager'),
+    path('marketing/',views.Marketing_view.as_view(),name='marketing'),
+    path('library/',views.Library_view.as_view(),name='library')
 
 
 

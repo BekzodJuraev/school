@@ -1,0 +1,251 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>ШколаCRM — Библиотека Интерактив</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f4f6fa; display: flex; min-height: 100vh; }
+
+  .sidebar { background-color: #1e1e2f; width: 240px; padding: 2rem 1.5rem; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
+  .sidebar h2 { font-size: 24px; color: white; text-align: center; margin-bottom: 2rem; }
+  .menu-link { display: flex; align-items: center; gap: 10px; background-color: #2a2a40; padding: 0.8rem 1rem; border-radius: 12px; color: white; text-decoration: none; margin-bottom: 0.5rem; transition: 0.3s; }
+  .menu-link.active { background-color: #4e73df; box-shadow: 0 0 15px #4e73dfaa; }
+
+  .main-wrapper { flex-grow: 1; background: #fff; padding: 2rem 3rem; }
+
+  .tabs { display: flex; gap: 10px; margin-bottom: 2rem; border-bottom: 2px solid #e3e6f0; padding-bottom: 10px; }
+  .tab-btn { padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700; background: #f8f9fc; color: #4e73df; }
+  .tab-btn.active { background: #4e73df; color: white; }
+
+  .admin-card { background: #f8f9fc; padding: 20px; border-radius: 15px; border: 1px solid #e3e6f0; margin-bottom: 2rem; border-top: 4px solid #4e73df; }
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: flex-end; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 0.85rem; font-weight: 700; color: #5a5c69; }
+  .form-group input, .form-group select { padding: 10px; border-radius: 10px; border: 1px solid #d1d3e2; outline: none; }
+
+  .btn-primary { background: #4e73df; color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+  .btn-success { background: #1cc88a; color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+
+  .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  .class-card { background: white; border: 1px solid #e3e6f0; border-radius: 15px; padding: 20px; border-top: 5px solid #4e73df; }
+  .class-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+  .class-title { font-size: 1.3rem; font-weight: 800; color: #4e73df; }
+  .teacher-name { font-size: 0.85rem; color: #858796; font-weight: 600; }
+
+  .issued-item { display: flex; justify-content: space-between; align-items: center; background: #f8f9fc; padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; font-size: 0.9rem; border: 1px solid #eee; }
+  .qty-controls { display: flex; align-items: center; gap: 10px; }
+  .btn-mini { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; color: white; }
+  .btn-minus { background: #e74a3b; }
+  .btn-plus { background: #1cc88a; }
+  .btn-del-card { color: #e74a3b; background: none; border: none; cursor: pointer; font-weight: bold; font-size: 1.2rem; }
+</style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>🏫 ШколаCRM</h2>
+    <nav class="menu">
+      <a href="{% url 'dashboard' %}" class="menu-link " >🏠 Панель</a>
+       {% if request.user.profile.position == 'admin' %}
+      <a href="{% url 'approve' %}" class="menu-link">📄 Заявки</a>
+      <a href="{% url 'report' %}" class="menu-link ">📈 Отчет</a>
+      <a href="{% url 'turniket' %}" class="menu-link ">
+    🚧 Турникет
+</a>
+       <a href="{% url 'kassa' %}" class="menu-link   ">📊 Касса</a>
+      <a href="{% url 'kassa_sadik' %}" class="menu-link   ">📊 Касса(Cадик)</a>
+       <a href="{% url 'kassa_lager' %}" class="menu-link   ">📊 Касса(Лагерь)</a>
+      <a href="{% url 'discount' %}" class="menu-link">💸 Скидки</a>
+        <a href="{% url 'marketing' %}" class="menu-link">🎯 Маркетинг</a>
+         <a href="{% url 'library' %}" class="menu-link  active">📚 Библиотека</a>
+         <a href="{% url 'warehouse' %}" class="menu-link ">📁 Склад</a>
+      <a href="{% url  'kitchen' %}" class="menu-link">🍽️ Кухня</a>
+      <a href="{% url  'inventory' %}" class="menu-link">📋 Инвентаризация</a>
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+        <a href="{% url 'student_lager' %}" class="menu-link ">🏕️ Ученики (Лагерь)</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+      {% elif request.user.profile.position == 'supplier' %}
+      <a href="{% url 'warehouse' %}" class="menu-link ">📁 Склад</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+      {% elif request.user.profile.position == 'HR' %}
+      <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
+      <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
+      <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+        <a href="{% url 'student_lager' %}" class="menu-link ">🏕️ Ученики (Лагерь)</a>
+      <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+      {% elif request.user.profile.position == 'chief' %}
+     <a href="{% url  'kitchen' %}" class="menu-link">🍽️ Кухня</a>
+      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
+
+
+      {% endif %}
+
+    </nav>
+  </div>
+
+<div class="main-wrapper">
+  <h1>Управление Библиотекой</h1>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('classes')">Классы и Выдача</button>
+    <button class="tab-btn" onclick="switchTab('catalog')">Каталог учебников</button>
+  </div>
+
+  <div id="tab-classes">
+    <div class="admin-card">
+      <h4 style="margin:0 0 15px 0; color:#4e73df;">Шаг 1: Создать новую карту класса</h4>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Выберите Класс</label>
+          <select id="newClassName">
+            <option value="1-А">1-А класс</option>
+            <option value="1-Б">1-Б класс</option>
+            <option value="5-Г">5-Г класс</option>
+            <option value="9-А">9-А класс</option>
+            <option value="11-Б">11-Б класс</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Учитель (Ответственный)</label>
+          <select id="newClassTeacher">
+            <option>Азизов Б.</option>
+            <option>Каримова М.</option>
+            <option>Рахимов С.</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="createNewClassCard()">Создать карту</button>
+      </div>
+    </div>
+
+    <div class="class-grid" id="classGrid"></div>
+  </div>
+
+  <div id="tab-catalog" style="display:none;">
+    <div class="admin-card">
+        <h4>Добавить учебник в общий каталог</h4>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Название книги</label>
+                <input type="text" id="catBookName" placeholder="Напр: Алгебра 9 класс">
+            </div>
+            <button class="btn-success" onclick="addToCatalog()">+ Добавить в каталог</button>
+        </div>
+    </div>
+    <div id="catalogList" style="padding: 10px; background: #f8f9fc; border-radius: 10px;">
+        <strong>Текущий каталог:</strong>
+        <ul id="catUl" style="margin-top: 10px; color: #5a5c69;"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  // МОК-ДАННЫЕ КАТАЛОГА
+  let catalogBooks = ["Математика 5 кл.", "История Узбекистана", "English 6"];
+
+  function switchTab(tab) {
+    document.getElementById('tab-classes').style.display = tab === 'classes' ? 'block' : 'none';
+    document.getElementById('tab-catalog').style.display = tab === 'catalog' ? 'block' : 'none';
+    document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', (idx === 0 && tab === 'classes') || (idx === 1 && tab === 'catalog'));
+    });
+    if(tab === 'catalog') renderCatalog();
+  }
+
+  function renderCatalog() {
+    const ul = document.getElementById('catUl');
+    ul.innerHTML = catalogBooks.map(b => `<li>${b}</li>`).join('');
+  }
+
+  function addToCatalog() {
+      const name = document.getElementById('catBookName').value;
+      if(!name) return;
+      catalogBooks.push(name);
+      document.getElementById('catBookName').value = '';
+      renderCatalog();
+      alert('Книга "' + name + '" добавлена в каталог и доступна для выбора в классах!');
+  }
+
+  function createNewClassCard() {
+    const className = document.getElementById('newClassName').value;
+    const teacherName = document.getElementById('newClassTeacher').value;
+
+    const grid = document.getElementById('classGrid');
+    const cardId = 'class-' + Date.now();
+
+    const bookOptions = catalogBooks.map(b => `<option value="${b}">${b}</option>`).join('');
+
+    const cardHtml = `
+      <div class="class-card" id="${cardId}">
+        <div class="class-header">
+          <div>
+            <div class="class-title">${className}</div>
+            <div class="teacher-name">👤 Учитель: ${teacherName}</div>
+          </div>
+          <button class="btn-del-card" onclick="document.getElementById('${cardId}').remove()">✕</button>
+        </div>
+
+        <div style="margin-bottom: 15px; background: #f0f3ff; padding: 10px; border-radius: 10px;">
+          <label style="font-size: 0.75rem; font-weight: 800; color: #4e73df;">ВЫДАТЬ КНИГУ:</label>
+          <div style="display:flex; gap:5px; margin-top:5px;">
+            <select class="book-sel" style="flex-grow:1; padding:5px; border-radius:5px; border:1px solid #ccc;">${bookOptions}</select>
+            <input type="number" class="book-qty" value="25" style="width:50px; padding:5px; border-radius:5px; border:1px solid #ccc;">
+            <button class="btn-success" onclick="addBookToCard('${cardId}', this)" style="padding:5px 10px; font-size:12px;">+</button>
+          </div>
+        </div>
+
+        <div class="books-list" id="list-${cardId}"></div>
+      </div>
+    `;
+
+    grid.insertAdjacentHTML('afterbegin', cardHtml);
+  }
+
+  function addBookToCard(cardId, btn) {
+      const parent = btn.parentElement;
+      const bookName = parent.querySelector('.book-sel').value;
+      const qty = parseInt(parent.querySelector('.book-qty').value);
+      const list = document.getElementById('list-' + cardId);
+
+      // Проверяем, есть ли уже такая книга в списке этого класса
+      let existing = Array.from(list.querySelectorAll('.issued-item')).find(el => el.dataset.name === bookName);
+
+      if(existing) {
+          let qtyEl = existing.querySelector('.qty-val');
+          qtyEl.innerText = parseInt(qtyEl.innerText) + qty;
+      } else {
+          const itemHtml = `
+              <div class="issued-item" data-name="${bookName}">
+                <span>📖 ${bookName}</span>
+                <div class="qty-controls">
+                    <button class="btn-mini btn-minus" onclick="updateQty(this, -1)">-</button>
+                    <strong class="qty-val">${qty}</strong>
+                    <button class="btn-mini btn-plus" onclick="updateQty(this, 1)">+</button>
+                </div>
+              </div>
+          `;
+          list.insertAdjacentHTML('beforeend', itemHtml);
+      }
+  }
+
+  function updateQty(btn, change) {
+      const item = btn.closest('.issued-item');
+      const qtyEl = item.querySelector('.qty-val');
+      let newQty = parseInt(qtyEl.innerText) + change;
+
+      if(newQty <= 0) {
+          item.remove();
+      } else {
+          qtyEl.innerText = newQty;
+      }
+  }
+
+  window.onload = () => { createNewClassCard(); renderCatalog(); };
+</script>
+</body>
+</html>

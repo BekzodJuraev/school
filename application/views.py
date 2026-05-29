@@ -686,63 +686,73 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
       today = now().date()
+      current_month = today.month
+      current_year = today.year
 
-      students_with_debt = Payment.objects.filter(
-         transaction_type="debt",
-         created_at__year=today.year,
-         created_at__month=today.month,
-      ).values_list("student_id", flat=True)
-
-
-      students = Student.objects.filter(education_type="school").exclude(id__in=students_with_debt).exclude(archive=True)
-
-
-      payments = [
-         Payment(
-            student=s,
+      # --- БЛОК НАЧИСЛЕНИЯ ДОЛГОВ ---
+      # Начисляем только если НЕ июнь(6), июль(7), август(8)
+      if current_month not in [5, 7, 8]:
+         students_with_debt = Payment.objects.filter(
             transaction_type="debt",
-            created_at=today,
-            sum=s.discount if s.discount else 3800000
-         )
-         for s in students
-      ]
+            created_at__year=current_year,
+            created_at__month=current_month,
+         ).values_list("student_id", flat=True)
 
-      Payment.objects.bulk_create(payments)
+         students_to_charge = Student.objects.filter(
+            education_type="school"
+         ).exclude(id__in=students_with_debt).exclude(archive=True)
 
+         if students_to_charge.exists():
+            payments = [
+               Payment(
+                  student=s,
+                  transaction_type="debt",
+                  created_at=today,
+                  sum=s.discount if s.discount else 3800000
+               )
+               for s in students_to_charge
+            ]
+            Payment.objects.bulk_create(payments)
 
-      context['students']=Student.objects.filter(education_type="school").values('id','name','lastname','middle_name','school_class__name')
-      current_month = timezone.now().month
-      current_year = timezone.now().year
-      context['payment']=Payment.objects.filter(student__education_type="school",transaction_type='payment').select_related('student__school_class')
-      context['more'] = Payment.objects.select_related('student__school_class')
-      context['debt']=Payment.objects.filter(student__education_type="school").values('student__id', 'student__name','student__lastname','student__middle_name','student__school_class__name') \
-    .annotate(
-        total=(
-                Coalesce(Sum('sum', filter=Q(transaction_type='debt')), 0, output_field=models.DecimalField()) -
-                Coalesce(Sum('sum', filter=Q(transaction_type='payment')), 0, output_field=models.DecimalField())
-        ),last_payment=Max('created_at',filter=Q(transaction_type='payment'))
-    ).filter(total__gt=0)
-      context['sum_month'] = Payment.objects.filter(
-         student__education_type="school",
-         transaction_type='payment',
+      # --- БЛОК СБОРА КОНТЕКСТА (работает всегда) ---
+      context['students'] = Student.objects.filter(education_type="school").values(
+         'id', 'name', 'lastname', 'middle_name', 'school_class__name'
+      )
+
+      # Оптимизируем запросы: используем select_related для уменьшения кол-ва запросов к БД
+      payments_qs = Payment.objects.filter(student__education_type="school")
+
+      context['payment'] = payments_qs.filter(transaction_type='payment').select_related('student__school_class')
+      context['more'] = Payment.objects.select_related('student__school_class')  # Все платежи
+
+      # Расчет долгов
+      context['debt'] = payments_qs.values(
+         'student__id', 'student__name', 'student__lastname', 'student__middle_name', 'student__school_class__name'
+      ).annotate(
+         total=(
+                 Coalesce(Sum('sum', filter=Q(transaction_type='debt')), 0, output_field=models.DecimalField()) -
+                 Coalesce(Sum('sum', filter=Q(transaction_type='payment')), 0, output_field=models.DecimalField())
+         ),
+         last_payment=Max('created_at', filter=Q(transaction_type='payment'))
+      ).filter(total__gt=0)
+
+      # Статистика по суммам
+      base_payments = payments_qs.filter(transaction_type='payment')
+
+      context['sum_month'] = base_payments.filter(
          created_at__year=current_year,
          created_at__month=current_month
       ).aggregate(total=Sum('sum'))['total'] or 0
-      context['sum_day'] = Payment.objects.filter(
-         student__education_type="school",
-         transaction_type='payment',
+
+      context['sum_day'] = base_payments.filter(
          created_at=today
       ).aggregate(total=Sum('sum'))['total'] or 0
-      context['sum_year'] = Payment.objects.filter(
-         student__education_type="school",
-         transaction_type='payment',
-         created_at__year=current_year,
+
+      context['sum_year'] = base_payments.filter(
+         created_at__year=current_year
       ).aggregate(total=Sum('sum'))['total'] or 0
 
-
-
-      return  context
-
+      return context
 
 @csrf_exempt  # Для тестов, но лучше использовать CSRF-токен в fetch
 def create_cabinet_api(request):
@@ -968,8 +978,12 @@ class Inventory_view(LoginRequiredMixin,TemplateView):
 
 
       return context
-
-
+class Library_view(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'library.html'
+class Marketing_view(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'marketing.html'
 class Turniket_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'turniket.html'
