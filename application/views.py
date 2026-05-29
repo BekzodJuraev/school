@@ -27,7 +27,7 @@ from django.db.models import Sum,Q,Count,F,Max,Prefetch,Value
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
-from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items,Turniket,TrackingTurniket
+from .models import Profile,Staff,SchoolClass,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items,Turniket,TrackingTurniket,CampStudent,PaymentLager
 from django.utils import timezone
 from django.utils import timezone
 from decimal import Decimal
@@ -44,6 +44,7 @@ class Dashboard(LoginRequiredMixin,TemplateView):
       context['school'] = Student.objects.filter(archive=False,education_type="school").count()
       context['kinder'] = Student.objects.filter(archive=False,education_type="kindergarten").count()
       context['staff'] = Staff.objects.all().count()
+      context['camp_count']=CampStudent.objects.filter(active_this_season=True).count()
       context['teacher'] = Staff.objects.filter(position='teacher').count()
       context['sum'] = Payment.objects.filter(
          transaction_type='payment',
@@ -409,6 +410,72 @@ class ArchiveStudent(LoginRequiredMixin,TemplateView):
       context['class'] = Student.objects.filter(archive=True).select_related('school_class')
 
       return context
+
+class LagerView(LoginRequiredMixin,TemplateView):
+   login_url = reverse_lazy('login')
+   template_name = 'student_lager.html'
+
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+      id = request.POST.get('id')  # ID записи в CampStudent
+
+      # Данные из формы лагеря
+      name = request.POST.get('name')
+      lastname = request.POST.get('lastname')
+      middle_name = request.POST.get('middle_name')
+      phone = request.POST.get('phone')
+      camp_group = request.POST.get('camp_group')
+
+
+      # ID школьника (если подтянули через умный поиск)
+      base_student_id = request.POST.get('base_student_id')
+
+      if action == 'create':
+         # Создаем запись в таблице лагеря
+         CampStudent.objects.create(
+            base_student_id=base_student_id if base_student_id else None,
+            name=name,
+            lastname=lastname,
+            middle_name=middle_name,
+            phone=phone,
+            camp_group_id=camp_group
+         )
+
+      elif action == 'update':
+         # Обновляем именно лагерную запись
+         camp_student = CampStudent.objects.filter(id=id).first()
+         if camp_student:
+            camp_student.name = name
+            camp_student.lastname = lastname
+            camp_student.middle_name = middle_name
+            camp_student.phone = phone
+            camp_student.camp_group_id = camp_group
+            # base_student_id обычно не меняем при обновлении,
+            # чтобы не нарушить связь, которая уже создана
+            camp_student.save()
+
+      elif action == 'delete':
+         # В лагере "удаление" — это обычно просто исключение из списка активных
+         # Либо полный делит, если не нужны архивы лагеря
+         CampStudent.objects.filter(id=id).update(active_this_season=False)
+
+      return redirect(request.path)
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['class'] = CampStudent.objects.filter(active_this_season=True).select_related('camp_group')
+      context['classes']=SchoolClass.objects.all()
+      existing_camp_ids = CampStudent.objects.filter(
+         base_student__isnull=False
+      ).values_list('base_student_id', flat=True)
+
+      # 2. Исключаем этих студентов из общего списка школы.
+      # Используем exclude(id__in=...)
+      context['all_school_students'] = Student.objects.filter(
+         archive=False
+      ).exclude(id__in=existing_camp_ids)
+      return context
+
 class StudentView(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'student.html'
@@ -634,6 +701,7 @@ class Kassa_view(LoginRequiredMixin,TemplateView):
          Payment(
             student=s,
             transaction_type="debt",
+            created_at=today,
             sum=s.discount if s.discount else 3800000
          )
          for s in students
@@ -918,6 +986,90 @@ class Kassa_lager_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'kassa_lager.html'
 
+   def post(self, request, *args, **kwargs):
+      action = request.POST.get('action')
+      type_of_payment = request.POST.get('type_of_payment')
+      sum = request.POST.get('sum')
+      student_pk = request.POST.get('student_id')
+      note = request.POST.get('note')
+      transaction_type = "payment"
+      created_at = request.POST.get('payment_date')
+
+      pk = request.POST.get('pk')
+
+      if action == "payment":
+         PaymentLager.objects.create(sum=sum, type_of_payment=type_of_payment, created_at=created_at,
+                                transaction_type=transaction_type, student_id=student_pk, comment=note)
+
+      elif action == "delete":
+         PaymentLager.objects.filter(pk=pk).delete()
+
+      elif action == "edit":
+
+         PaymentLager.objects.filter(pk=pk).update(sum=sum, created_at=created_at, type_of_payment=type_of_payment,
+                                              comment=note)
+
+      return redirect(request.path)
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      today = now().date()
+
+      students_with_debt = PaymentLager.objects.filter(
+         transaction_type="debt",
+         created_at__year=today.year,
+         created_at__month=today.month,
+      ).values_list("student_id", flat=True)
+
+
+      students = CampStudent.objects.exclude(id__in=students_with_debt).exclude(active_this_season=False)
+
+
+
+
+      payments = [
+         PaymentLager(
+            student=s,
+            transaction_type="debt",
+            sum=3600000,
+            created_at=today
+         )
+         for s in students
+      ]
+
+      PaymentLager.objects.bulk_create(payments)
+
+
+      context['students']=CampStudent.objects.values('id','name','lastname','middle_name','camp_group__name')
+      current_month = timezone.now().month
+      current_year = timezone.now().year
+      context['payment']=PaymentLager.objects.filter(transaction_type='payment').select_related('student__camp_group').order_by("-id")
+      context['more'] = PaymentLager.objects.select_related('student__school_class')
+      context['debt']=PaymentLager.objects.values('student__id', 'student__name','student__lastname','student__middle_name','student__camp_group__name') \
+    .annotate(
+        total=(
+                Coalesce(Sum('sum', filter=Q(transaction_type='debt')), 0, output_field=models.DecimalField()) -
+                Coalesce(Sum('sum', filter=Q(transaction_type='payment')), 0, output_field=models.DecimalField())
+        ),last_payment=Max('created_at',filter=Q(transaction_type='payment'))
+    ).filter(total__gt=0)
+      context['sum_month'] = PaymentLager.objects.filter(
+         transaction_type='payment',
+         created_at__year=current_year,
+         created_at__month=current_month
+      ).aggregate(total=Sum('sum'))['total'] or 0
+      context['sum_day'] = PaymentLager.objects.filter(
+         transaction_type='payment',
+         created_at=today
+      ).aggregate(total=Sum('sum'))['total'] or 0
+      context['sum_year'] = PaymentLager.objects.filter(
+         transaction_type='payment',
+         created_at__year=current_year,
+      ).aggregate(total=Sum('sum'))['total'] or 0
+
+
+
+      return  context
+
 class Kassa_sadik_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'kassa_sadik.html'
@@ -976,7 +1128,8 @@ class Kassa_sadik_view(LoginRequiredMixin,TemplateView):
          Payment(
             student=s,
             transaction_type="debt",
-            sum=caluclate(s)
+            sum=caluclate(s),
+            created_at=today
          )
          for s in students
       ]
@@ -1054,6 +1207,49 @@ def student_more(request, pk):
    return JsonResponse({
       "student_name": f"{student.lastname} {student.name} {student.middle_name}",
       "student_class": student.school_class.name,
+      "payments": payments,
+      "debts": debts,
+      "total_payments": float(total_payments),
+      "total_debts": float(total_debts),
+      "balance": float(total_debts - total_payments),
+   })
+
+def student_more_lager(request, pk):
+   student = get_object_or_404(CampStudent, pk=pk)
+   transactions = PaymentLager.objects.filter(student=student).order_by("created_at")
+   total_payments=PaymentLager.objects.filter(student=student,transaction_type="payment").aggregate(total=Sum('sum'))['total'] or 0
+   total_debts=PaymentLager.objects.filter(student=student,transaction_type="debt").aggregate(total=Sum('sum'))['total'] or 0
+
+   payments = []
+   debts = []
+   months_ru = {
+      "01": "Январь", "02": "Февраль", "03": "Март", "04": "Апрель",
+      "05": "Май", "06": "Июнь", "07": "Июль", "08": "Август",
+      "09": "Сентябрь", "10": "Октябрь", "11": "Ноябрь", "12": "Декабрь"
+   }
+
+
+
+   for t in transactions:
+      if t.transaction_type == "payment":
+         payments.append({
+            "date": t.created_at.strftime("%d.%m.%Y"),
+            "type_of_payment": t.get_type_of_payment_display(),
+            "sum": float(t.sum),
+            "note":t.comment,
+         })
+      else:
+
+         debts.append({
+            "date": t.created_at.strftime("%d.%m.%Y"),
+            "sum": float(t.sum),
+            "month": months_ru.get(t.created_at.strftime("%m"))
+         })
+
+
+   return JsonResponse({
+      "student_name": f"{student.lastname} {student.name} {student.middle_name}",
+      "student_class": student.camp_group.name,
       "payments": payments,
       "debts": debts,
       "total_payments": float(total_payments),

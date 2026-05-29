@@ -25,6 +25,7 @@ urlpatterns=[
     path('api/create-item/', views.items_api, name='create-item'),
     path('api/delete-item/<int:item_id>/', views.items_api, name='delete-item'),
     path("student/<int:pk>/more/", views.student_more, name="student_more"),
+    path("student_lager/<int:pk>/more/", views.student_more_lager, name="student_more_lager"),
     path('discount/',views.Discount_view.as_view(),name='discount'),
     path('printer/',views.Printer_checkView.as_view(),name='printer'),
     path('report/',views.ReportView.as_view(),name='report'),
@@ -32,6 +33,7 @@ urlpatterns=[
     path('turniket/',views.Turniket_view.as_view(),name='turniket'),
     path("hikvision/event/", views.hikvision_event, name="hikvision_event"),
     path('turniket/data/', views.turniket_data, name='turniket_data'),
+    path('lager/',views.LagerView.as_view(),name='student_lager')
 
 
 

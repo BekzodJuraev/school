@@ -1,5 +1,7 @@
 {% load humanize %}
 {% load static %}
+
+{% load tz %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -660,6 +662,7 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
       <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
       <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
       <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+    <a href="{% url 'student_lager' %}" class="menu-link ">🏕️ Ученики (Лагерь)</a>
       <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
      <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
   </nav>
@@ -677,32 +680,29 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
     <section class="summary-grid" aria-label="Общее количество товаров по категориям">
     <article class="summary-card" tabindex="0" aria-label="Школьные принадлежности: 385 штук">
       <h2 class="summary-title">Доход за год</h2>
-      <p class="summary-value">0<span class="summary-unit"> сум</span></p>
+      <p class="summary-value">{{sum_year|intcomma}}<span class="summary-unit"> сум</span></p>
     </article>
     <article class="summary-card" tabindex="0" aria-label="Мебель: 120 штук">
       <h2 class="summary-title">Доход за месяц</h2>
-      <p class="summary-value">0<span class="summary-unit"> сум</span></p>
+      <p class="summary-value">{{sum_month|intcomma}}<span class="summary-unit"> сум</span></p>
     </article>
     <article class="summary-card" tabindex="0" aria-label="Оборудование: 45 штук">
       <h2 class="summary-title">Доход за день</h2>
-      <p class="summary-value">0<span class="summary-unit"> сум</span></p>
+      <p class="summary-value">{{sum_day|intcomma}}<span class="summary-unit"> сум</span></p>
     </article>
   </section>
    <div class="filters">
-    <!-- Search -->
-   <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
+  <input type="text" id="searchInput" placeholder="🔍 Поиск по имени ..." />
 
-    <!-- Date filter -->
-    <label>
-      от:
-      <input type="date" id="startDate">
-    </label>
-    <label>
-      до:
-      <input type="date" id="endDate">
-    </label>
-    <button onclick="filterTable()">Фильтр</button>
-  </div>
+  <label>
+    от:
+    <input type="date" id="startDate">
+  </label>
+  <label>
+    до:
+    <input type="date" id="endDate">
+  </label>
+</div>
   <!-- Tabs -->
   <nav class="tabs" role="tablist" aria-label="Переключение между разделами">
     <button role="tab" aria-selected="true" aria-controls="payments-tab" id="tabPayments" class="active">Платежи</button>
@@ -835,6 +835,18 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
   <input type="hidden" id="studentId" name="student_id">
   <input type="hidden" id="studentClass" name="student_class">
 </div>
+         <div class="form-group" style="margin-bottom: 15px;">
+  <label for="paymentDate" style="display: block; margin-bottom: 5px;">Дата</label>
+  <input
+    type="date"
+    id="paymentDate"
+    name="payment_date"
+    class="form-control"
+    style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;"
+    value="{% now 'Y-m-d' %}"
+    required
+  >
+</div>
 
 
       <label for="itemCategory">Тип оплаты</label>
@@ -905,6 +917,7 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
           <th>Дата</th>
           <th>Тип оплаты</th>
           <th>Сумма</th>
+            <th>Примечание</th>
         </tr>
       </thead>
       <tbody id="morePayments"></tbody>
@@ -918,6 +931,7 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
         <tr>
           <th>Дата</th>
           <th>Сумма</th>
+            <th>Месяц</th>
         </tr>
       </thead>
       <tbody id="moreDebts"></tbody>
@@ -936,8 +950,29 @@ grid-template-columns: repeat(2, minmax(0, 1fr));
     </div>
   </div>
 </div>
+
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const startDateInput = document.getElementById("startDate");
+  const endDateInput = document.getElementById("endDate");
+  const searchInput = document.getElementById("searchInput");
+
+  // 1. Устанавливаем сегодняшнюю дату при загрузке страницы
+  const today = new Date().toISOString().split('T')[0];
+  startDateInput.value = today;
+  endDateInput.value = today;
+
+  // 2. Добавляем слушатели событий для мгновенной фильтрации
+  [startDateInput, endDateInput, searchInput].forEach(input => {
+    input.addEventListener("input", filterTable);
+  });
+
+  // Запускаем фильтр сразу, чтобы показать записи только за сегодня
+  filterTable();
+});
+
 function filterTable() {
+  const query = document.getElementById("searchInput").value.toLowerCase();
   const startDate = document.getElementById("startDate").value
     ? new Date(document.getElementById("startDate").value)
     : null;
@@ -945,18 +980,31 @@ function filterTable() {
     ? new Date(document.getElementById("endDate").value)
     : null;
 
+  // Если дата выбрана, сбрасываем время для корректного сравнения "день в день"
+  if (startDate) startDate.setHours(0, 0, 0, 0);
+  if (endDate) endDate.setHours(23, 59, 59, 999);
+
   const rows = document.querySelectorAll("#paymentsTable tbody tr");
 
   rows.forEach(row => {
+    // Получаем дату из колонки
     const dateText = row.querySelector('[data-label="Дата"]').textContent.trim();
     const [day, month, year] = dateText.split(".");
     const rowDate = new Date(`${year}-${month}-${day}`);
 
-    let visible = true;
-    if (startDate && rowDate < startDate) visible = false;
-    if (endDate && rowDate > endDate) visible = false;
+    // Получаем имя из колонки (предположим, у вас есть data-label="Имя")
+    const nameText = row.querySelector('[data-label="Ученик"]')?.textContent.toLowerCase() || "";
 
-    row.style.display = visible ? "" : "none";
+    let isVisible = true;
+
+    // Проверка по дате
+    if (startDate && rowDate < startDate) isVisible = false;
+    if (endDate && rowDate > endDate) isVisible = false;
+
+    // Проверка по поиску (имя)
+    if (query && !nameText.includes(query)) isVisible = false;
+
+    row.style.display = isVisible ? "" : "none";
   });
 }
 </script>
@@ -968,7 +1016,7 @@ document.querySelectorAll(".btn.more").forEach(btn => {
     const id = this.dataset.id;
 
     try {
-      const response = await fetch(`/student/${id}/more/`);
+      const response = await fetch(`/student_lager/${id}/more/`);
       const data = await response.json();
 
       // Заполняем поля
@@ -978,13 +1026,13 @@ document.querySelectorAll(".btn.more").forEach(btn => {
       // Payments
       const paymentsTable = document.getElementById("morePayments");
       paymentsTable.innerHTML = data.payments.map(p =>
-        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td></tr>`
+        `<tr><td>${p.date}</td><td>${p.type_of_payment}</td><td>${Number(p.sum).toLocaleString("ru-RU")}</td><td>${p.note}</td></tr>`
       ).join("");
 
       // Debts
       const debtsTable = document.getElementById("moreDebts");
       debtsTable.innerHTML = data.debts.map(d =>
-        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td></tr>`
+        `<tr><td>${d.date}</td><td>${Number(d.sum).toLocaleString("ru-RU")}</td><td>${d.month}</td></tr>`
       ).join("");
 
       // Totals (считаем на бэке или тут)
@@ -1037,8 +1085,21 @@ document.querySelectorAll(".btn.edit").forEach(btn => {
     document.getElementById("price_raw").value = sum;
     document.getElementById("price").value = sum.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
+    // 4. Примечание (берем текст из колонки, так как в data-атрибутах его нет)
+    const comment = tr.querySelector('[data-label="Примечание"]')?.textContent.trim();
+    document.getElementById("invoiceNote").value = comment || "";
+
     // 4. Update action and UI text
     document.getElementById("action").value = "edit";
+    const dateText = tr.querySelector('[data-label="Дата"]').textContent.trim();
+    if (dateText) {
+        const [day, month, year] = dateText.split(".");
+        // Форматируем в ГГГГ-ММ-ДД для input type="date"
+        const formattedDate = `${year}-${month}-${day}`;
+        document.getElementById("paymentDate").value = formattedDate;
+    }
+
+
 
     // Safety check: only set textContent if the elements exist
     if (modalTitle) modalTitle.textContent = 'Редактировать оплату';

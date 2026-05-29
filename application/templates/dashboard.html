@@ -320,6 +320,7 @@ stats {
       <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
       <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
       <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+        <a href="{% url 'student_lager' %}" class="menu-link ">🏕️ Ученики (Лагерь)</a>
       <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
       <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
       {% elif request.user.profile.position == 'supplier' %}
@@ -329,6 +330,7 @@ stats {
       <a href="{% url 'staff' %}" class="menu-link ">👨‍🏫 Сотрудники</a>
       <a href="{% url 'class' %}" class="menu-link ">📚 Классы</a>
       <a href="{% url 'student' %}" class="menu-link">🎓 Ученики</a>
+        <a href="{% url 'student_lager' %}" class="menu-link ">🏕️ Ученики (Лагерь)</a>
       <a href="{% url 'archive' %}" class="menu-link">🗄️ Архив</a>
       <a href="{% url 'logout' %}" class="menu-link">🚪 Выйти</a>
       {% elif request.user.profile.position == 'chief' %}
@@ -371,6 +373,11 @@ stats {
     <div class="stat-item">
       <span>📘 Подготовка</span>
       <strong>{{preschool}}</strong>
+    </div>
+
+    <div class="stat-item" style="border-top: 1px dashed #ccc; padding-top: 5px; margin-top: 5px;">
+      <span>🏕️ Лагерь</span>
+      <strong>{{camp_count}}</strong>
     </div>
   </div>
 </div>

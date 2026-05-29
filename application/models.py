@@ -69,6 +69,31 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.lastname} {self.name} - {self.school_class}"
 
+
+class CampStudent(models.Model):
+    base_student = models.OneToOneField(
+        'Student',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='camp_profile'
+    )
+
+    lastname = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
+    middle_name = models.CharField(max_length=200, blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Телефон")
+    created_at = models.DateField(auto_now_add=True,null=True)
+
+    camp_group = models.ForeignKey(
+        'SchoolClass',
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
+    active_this_season = models.BooleanField(default=True)  # Чтобы легко отключать всех после лета
+
+    def __str__(self):
+        return f"{self.lastname} {self.name} (Лагерь)"
 class Staff(models.Model):
     POSITION_CHOICES = [
         ("teacher", "Учитель"),
@@ -223,7 +248,46 @@ class Payment(models.Model):
     def __str__(self):
         return self.student.name
 
+class PaymentLager(models.Model):
+    DEBT = "debt"
+    PAYMENT = "payment"
 
+    TRANSACTION_TYPES = [
+        (DEBT, "Начисление"),
+        (PAYMENT, "Оплата"),
+    ]
+    TYPE = [
+        ("cash", "Наличные"),
+        ("bank", "Карта"),
+        ('card','Банковские переводы')
+
+    ]
+    comment = models.CharField(max_length=200, null=True, blank=True)
+    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES,null=True)
+    student=models.ForeignKey(CampStudent, related_name="payment_student",on_delete=models.CASCADE)
+    type_of_payment=models.CharField(max_length=20, choices=TYPE,null=True,blank=True)
+    sum = models.DecimalField(max_digits=30, decimal_places=2,default=0)
+    created_at = models.DateField(null=True)
+
+
+
+    def save(self, *args, **kwargs):
+        if self.transaction_type == self.DEBT:
+            today = date.today()
+            already_debt = Payment.objects.filter(
+                student=self.student,
+                transaction_type=self.DEBT,
+                created_at__year=today.year,
+                created_at__month=today.month,
+            ).exists()
+            if already_debt:
+                return
+        super().save(*args, **kwargs)
+
+
+
+    def __str__(self):
+        return self.student.name
 class Turniket(models.Model):
     TYPE = [
         ("worker", "Сотрудник"),

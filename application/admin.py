@@ -1,8 +1,13 @@
 from django.contrib import admin
-from .models import Profile,Staff,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items,Turniket,TrackingTurniket
-
+from .models import Profile,Staff,Student,Warehouse,Invoice,Payment,Inventory,Inventory_cabinet,Inventory_items,Turniket,TrackingTurniket,CampStudent,PaymentLager
 from django.utils.html import format_html
 
+@admin.register(PaymentLager)
+class PaymentLager(admin.ModelAdmin):
+    pass
+@admin.register(CampStudent)
+class CampStudent(admin.ModelAdmin):
+    pass
 
 @admin.register(TrackingTurniket)
 class TrackingTurniket(admin.ModelAdmin):
