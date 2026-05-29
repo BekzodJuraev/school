@@ -229,11 +229,14 @@
     const response = await fetch(`{% url 'turniket_data' %}?date=${dateFilter}`);
     const logs = await response.json();
 
-    const allStaff = [
-      {% for s in staff_list %}
-        { name: "{{ s.lastname }} {{ s.name }}".trim(), photo: "{{ s.photo.url|default:'' }}" },
-      {% endfor %}
-    ];
+  const allStaff = [
+  {% for s in staff_list %}
+    {
+      name: "{{ s.lastname }} {{ s.name }}".trim(),
+      photo: "{% if s.photo %}{{ s.photo.url }}{% else %}/static/path/to/default.png{% endif %}"
+    },
+  {% endfor %}
+];
 
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
