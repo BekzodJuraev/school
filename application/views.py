@@ -978,7 +978,7 @@ class Turniket_view(LoginRequiredMixin,TemplateView):
       context = super().get_context_data(**kwargs)
 
       context['tracking']=TrackingTurniket.objects.all().select_related('turniket')
-
+      context['staff_list'] = Turniket.objects.all()
 
       return context
 
