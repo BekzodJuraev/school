@@ -981,6 +981,13 @@ class Inventory_view(LoginRequiredMixin,TemplateView):
 class Library_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'library.html'
+
+   def get_context_data(self, *, object_list=None, **kwargs):
+      context = super().get_context_data(**kwargs)
+      context['staff'] = Staff.objects.filter(position="teacher")
+      context['classes'] = SchoolClass.objects.all()
+
+      return context
 class Marketing_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')
    template_name = 'marketing.html'
@@ -1028,61 +1035,74 @@ class Kassa_lager_view(LoginRequiredMixin,TemplateView):
    def get_context_data(self, *, object_list=None, **kwargs):
       context = super().get_context_data(**kwargs)
       today = now().date()
+      current_month = today.month
+      current_year = today.year
 
-      students_with_debt = PaymentLager.objects.filter(
-         transaction_type="debt",
-         created_at__year=today.year,
-         created_at__month=today.month,
-      ).values_list("student_id", flat=True)
-
-
-      students = CampStudent.objects.exclude(id__in=students_with_debt).exclude(active_this_season=False)
-
-
-
-
-      payments = [
-         PaymentLager(
-            student=s,
+      # 1. Проверяем, является ли текущий месяц летним (6, 7 или 8)
+      if current_month in [6, 7, 8]:
+         # Ищем студентов, у которых уже есть запись о долге в ЭТОМ месяце
+         students_with_debt = PaymentLager.objects.filter(
             transaction_type="debt",
-            sum=3600000,
-            created_at=today
-         )
-         for s in students
-      ]
+            created_at__year=current_year,
+            created_at__month=current_month,
+         ).values_list("student_id", flat=True)
 
-      PaymentLager.objects.bulk_create(payments)
+         # Берем только активных в этом сезоне, исключая тех, кому долг уже начислен
+         students = CampStudent.objects.exclude(
+            id__in=students_with_debt
+         ).exclude(active_this_season=False)
 
+         # Массовое создание записей о долге (3.600.000 сум)
+         payments = [
+            PaymentLager(
+               student=s,
+               transaction_type="debt",
+               sum=3600000,
+               created_at=today
+            )
+            for s in students
+         ]
 
-      context['students']=CampStudent.objects.values('id','name','lastname','middle_name','camp_group__name')
-      current_month = timezone.now().month
-      current_year = timezone.now().year
-      context['payment']=PaymentLager.objects.filter(transaction_type='payment').select_related('student__camp_group').order_by("-id")
-      context['more'] = PaymentLager.objects.select_related('student__school_class')
-      context['debt']=PaymentLager.objects.values('student__id', 'student__name','student__lastname','student__middle_name','student__camp_group__name') \
-    .annotate(
-        total=(
-                Coalesce(Sum('sum', filter=Q(transaction_type='debt')), 0, output_field=models.DecimalField()) -
-                Coalesce(Sum('sum', filter=Q(transaction_type='payment')), 0, output_field=models.DecimalField())
-        ),last_payment=Max('created_at',filter=Q(transaction_type='payment'))
-    ).filter(total__gt=0)
+         if payments:
+            PaymentLager.objects.bulk_create(payments)
+
+      # 2. Формируем контекст для отображения в CRM
+      context['students'] = CampStudent.objects.values('id', 'name', 'lastname', 'middle_name', 'camp_group__name')
+
+      # Все оплаты лагеря
+      context['payment'] = PaymentLager.objects.filter(
+         transaction_type='payment'
+      ).select_related('student__camp_group').order_by("-id")
+
+      # Расчет задолженности (Твоя аннотация)
+      context['debt'] = PaymentLager.objects.values(
+         'student__id', 'student__name', 'student__lastname', 'student__middle_name', 'student__camp_group__name'
+      ).annotate(
+         total=(
+                 Coalesce(Sum('sum', filter=Q(transaction_type='debt')), 0, output_field=models.DecimalField()) -
+                 Coalesce(Sum('sum', filter=Q(transaction_type='payment')), 0, output_field=models.DecimalField())
+         ),
+         last_payment=Max('created_at', filter=Q(transaction_type='payment'))
+      ).filter(total__gt=0)
+
+      # Статистика по сборам
       context['sum_month'] = PaymentLager.objects.filter(
          transaction_type='payment',
          created_at__year=current_year,
          created_at__month=current_month
       ).aggregate(total=Sum('sum'))['total'] or 0
+
       context['sum_day'] = PaymentLager.objects.filter(
          transaction_type='payment',
          created_at=today
       ).aggregate(total=Sum('sum'))['total'] or 0
+
       context['sum_year'] = PaymentLager.objects.filter(
          transaction_type='payment',
          created_at__year=current_year,
       ).aggregate(total=Sum('sum'))['total'] or 0
 
-
-
-      return  context
+      return context
 
 class Kassa_sadik_view(LoginRequiredMixin,TemplateView):
    login_url = reverse_lazy('login')

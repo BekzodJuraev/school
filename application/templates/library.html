@@ -104,19 +104,17 @@
         <div class="form-group">
           <label>Выберите Класс</label>
           <select id="newClassName">
-            <option value="1-А">1-А класс</option>
-            <option value="1-Б">1-Б класс</option>
-            <option value="5-Г">5-Г класс</option>
-            <option value="9-А">9-А класс</option>
-            <option value="11-Б">11-Б класс</option>
+                  {% for item in classes %}
+        <option value="{{ item.name }}">{{ item.name }} </option>
+      {% endfor %}
           </select>
         </div>
         <div class="form-group">
           <label>Учитель (Ответственный)</label>
           <select id="newClassTeacher">
-            <option>Азизов Б.</option>
-            <option>Каримова М.</option>
-            <option>Рахимов С.</option>
+                  {% for item in staff %}
+        <option value="{{ item.lastname }} {{item.name}}">{{ item.lastname }} {{ item.name }} </option>
+      {% endfor %}
           </select>
         </div>
         <button class="btn-primary" onclick="createNewClassCard()">Создать карту</button>
